@@ -1,0 +1,4 @@
+data/**.DBL
+data/**.dbl
+work/convert_aeolus_l2b
+work/obs_seq*
