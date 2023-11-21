@@ -54,8 +54,9 @@ program convert_aeolus_l2b
    end type hlos_metadata
    type(hlos_metadata), allocatable, dimension(:) :: obs_metadata
 
-   ! Count of mie "WindResults" in the input file
-   integer*4 :: num_mie_count = 0
+   ! Count of "WindResults" in the input file
+   integer*4 :: num_mie = 0
+   integer*4 :: num_rayleigh = 0
 
    ! For looping
    integer :: i
@@ -116,14 +117,18 @@ program convert_aeolus_l2b
 
    call check_product_type_and_class()
 
-   ! Get number of mie windresults
-   num_mie_count = coda_fetch_uint32(coda_pf, ["sph", "NumMieWindResults"])
-   write(*,*) 'Num of mie windresults', num_mie_count
+   ! Get number of windresults
+   num_mie = coda_fetch_uint32(coda_pf, ["sph", "NumMieWindResults"])
+   write(*,*) 'Num of mie windresults', num_mie
+   num_rayleigh = coda_fetch_uint32(coda_pf, ["sph", "NumRayleighWindResults"])
+   write(*,*) 'Num of rayleigh windresults', num_rayleigh
+
+   write(*,*) 'Total windresults' , num_mie + num_rayleigh
 
    ! If we found no observations abort now
-   max_obs = num_mie_count
+   max_obs = num_mie + num_rayleigh + 1
    if (max_obs == 0) then
-      write(*,*) 'Error: no mie windresults found'
+      write(*,*) 'Error: no windresults found'
       stop
    end if
 
@@ -139,37 +144,42 @@ program convert_aeolus_l2b
    call set_copy_meta_data(obs_seq, 1, 'observation')
    call set_qc_meta_data(obs_seq, 1, 'AEOLUS QC')
 
-   do i = 2, max_obs
+   ! We do two loops here, one for mie measurements and one for rayleigh measurements
+   ! The code duplication is not particularly nice but I couldn't think of a way to
+   ! generalize this with the data structures available in stock FORTRAN. Contributions
+   ! welcome.
+   do i = 0, num_mie - 1
       ! Time
-      obs_seconds_from_base = coda_fetch_double(coda_pf, ["mie_geolocation", "?", "windresult_geolocation", "datetime_cog"], i - 1)
+      obs_seconds_from_base = coda_fetch_double(coda_pf, ["mie_geolocation", "?", "windresult_geolocation", "datetime_cog"], i)
       obs_timestamp = set_date(2000, 1, 1, 0, 0, 0) ! Base time
       obs_timestamp = increment_time(obs_timestamp, INT(obs_seconds_from_base))
       call get_time(obs_timestamp, seconds, days)
 
       ! Geolocation
-      obs_id = coda_fetch_uint32(coda_pf, ["mie_geolocation", "?", "wind_result_id"], i - 1)
-      altitude = coda_fetch_int32(coda_pf, ["mie_geolocation", "?", "windresult_geolocation", "altitude_vcog"], i - 1)
-      azimuth_a = coda_fetch_double(coda_pf, ["mie_geolocation", "?", "windresult_geolocation", "los_azimuth"], i - 1)
+      obs_id = coda_fetch_uint32(coda_pf, ["mie_geolocation", "?", "wind_result_id"], i)
+      altitude = coda_fetch_int32(coda_pf, ["mie_geolocation", "?", "windresult_geolocation", "altitude_vcog"], i)
+      azimuth_a = coda_fetch_double(coda_pf, ["mie_geolocation", "?", "windresult_geolocation", "los_azimuth"], i)
+
       ! For some reason, lat/lon are not correctly converted by CODA
       ! We disable automatic conversion here and do it manually
       coda_result = coda_set_option_perform_conversions(0)
 
-      latitude = coda_fetch_int32(coda_pf, ["mie_geolocation", "?", "windresult_geolocation", "latitude_cog"], i - 1) / 1000000.0
-      longitude = coda_fetch_int32(coda_pf, ["mie_geolocation", "?", "windresult_geolocation", "longitude_cog"], i - 1) / 1000000.0
+      latitude = coda_fetch_int32(coda_pf, ["mie_geolocation", "?", "windresult_geolocation", "latitude_cog"], i) / 1000000.0
+      longitude = coda_fetch_int32(coda_pf, ["mie_geolocation", "?", "windresult_geolocation", "longitude_cog"], i) / 1000000.0
 
       coda_result = coda_set_option_perform_conversions(1)
 
       ! HLOS & QC
-      hlos = coda_fetch_int32(coda_pf, ["mie_hloswind", "?", "windresult", "mie_wind_velocity"], i - 1)
-      hlos_err = coda_fetch_uint32(coda_pf, ["mie_wind_prod_conf_data", "?", "mie_wind_qc", "hlos_error_estimate"], i - 1)
-      validity_flag = coda_fetch_uint8(coda_pf, ["mie_hloswind", "?", "windresult", "validity_flag"], i - 1)
-      observation_type = coda_fetch_uint8(coda_pf, ["mie_hloswind", "?", "windresult", "observation_type"], i - 1)
+      hlos = coda_fetch_int32(coda_pf, ["mie_hloswind", "?", "windresult", "mie_wind_velocity"], i)
+      hlos_err = coda_fetch_uint32(coda_pf, ["mie_wind_prod_conf_data", "?", "mie_wind_qc", "hlos_error_estimate"], i)
+      validity_flag = coda_fetch_uint8(coda_pf, ["mie_hloswind", "?", "windresult", "validity_flag"], i)
+      observation_type = coda_fetch_uint8(coda_pf, ["mie_hloswind", "?", "windresult", "observation_type"], i)
 
       ! Convert HLOS from cm/s to m/s
       hlos_m = real(hlos, r8) / 100.0
       hlos_err_m = real(hlos_err, r8) / 100.0
 
-      ! Reject flagged observations (flag == 0) and Mie-clear retreivals (type != 1)
+      ! Reject flagged observations (flag == 0) and Mie-clear retrievals (type != 1)
       if (validity_flag == 0 .or. observation_type /= 1) then
          cycle
       end if
@@ -179,22 +189,60 @@ program convert_aeolus_l2b
          cycle
       end if
 
-      ! if (validity_flag == 1) then
-      !    call print_date(obs_timestamp)
-      !    write(*,*) 'obs_id', obs_id
-      !    write(*,*) 'latitude', latitude
-      !    write(*,*) 'longitude', longitude
-      !    write(*,*) 'altitude', altitude
-      !    write(*,*) 'azimuth_a', azimuth_a
-      !    write(*,*) 'hlos_err', hlos_err
-      !    write(*,*) 'hlos', hlos
-      !    write(*,*) 'validity_flag', validity_flag
-      ! end if
-
       call set_aeolus_metadata(obskey, obs_id, azimuth_a)
 
       ! We use a hardcoded 2.5m/s value for the observation error here
       hlos_err_m = 2.5
+      ! TODO Dynamically compute perhaps?
+      call create_3d_obs(latitude, longitude, altitude, VERTISHEIGHT, hlos_m, AEOLUS_L2B_HLOS, hlos_err_m, days, seconds, real(validity_flag, r8), obs, obskey)
+
+      call add_obs_to_seq(obs_seq, obs, obs_timestamp, prev_obs, prev_time, first_obs)
+   end do
+   do i = 0, num_rayleigh - 1
+      ! Time
+      obs_seconds_from_base = coda_fetch_double(coda_pf, ["rayleigh_geolocation", "?", "windresult_geolocation", "datetime_cog"], i)
+      obs_timestamp = set_date(2000, 1, 1, 0, 0, 0) ! Base time
+      obs_timestamp = increment_time(obs_timestamp, INT(obs_seconds_from_base))
+      call get_time(obs_timestamp, seconds, days)
+
+      ! Geolocation
+      obs_id = coda_fetch_uint32(coda_pf, ["rayleigh_geolocation", "?", "wind_result_id"], i)
+      altitude = coda_fetch_int32(coda_pf, ["rayleigh_geolocation", "?", "windresult_geolocation", "altitude_vcog"], i)
+      azimuth_a = coda_fetch_double(coda_pf, ["rayleigh_geolocation", "?", "windresult_geolocation", "los_azimuth"], i)
+
+      ! For some reason, lat/lon are not correctly converted by CODA
+      ! We disable automatic conversion here and do it manually
+      coda_result = coda_set_option_perform_conversions(0)
+
+      latitude = coda_fetch_int32(coda_pf, ["rayleigh_geolocation", "?", "windresult_geolocation", "latitude_cog"], i) / 1000000.0
+      longitude = coda_fetch_int32(coda_pf, ["rayleigh_geolocation", "?", "windresult_geolocation", "longitude_cog"], i) / 1000000.0
+
+      coda_result = coda_set_option_perform_conversions(1)
+
+      ! HLOS & QC
+      hlos = coda_fetch_int32(coda_pf, ["rayleigh_hloswind", "?", "windresult", "rayleigh_wind_velocity"], i)
+      hlos_err = coda_fetch_uint32(coda_pf, ["rayleigh_wind_prod_conf_data", "?", "rayleigh_wind_qc", "hlos_error_estimate"], i)
+      validity_flag = coda_fetch_uint8(coda_pf, ["rayleigh_hloswind", "?", "windresult", "validity_flag"], i)
+      observation_type = coda_fetch_uint8(coda_pf, ["rayleigh_hloswind", "?", "windresult", "observation_type"], i)
+
+      ! Convert HLOS from cm/s to m/s
+      hlos_m = real(hlos, r8) / 100.0
+      hlos_err_m = real(hlos_err, r8) / 100.0
+
+      ! Reject flagged observations (flag == 0) and Rayleigh-cloudy retrievals (type != 2)
+      if (validity_flag == 0 .or. observation_type /= 2) then
+         cycle
+      end if
+
+      ! Reject observations w/ instrument error larger than 12m/s
+      if (hlos_err_m > 4.0) then
+         cycle
+      end if
+
+      call set_aeolus_metadata(obskey, obs_id, azimuth_a)
+
+      ! We use a hardcoded 4.0m/s value for the observation error here
+      hlos_err_m = 4.0
       ! TODO Dynamically compute perhaps?
       call create_3d_obs(latitude, longitude, altitude, VERTISHEIGHT, hlos_m, AEOLUS_L2B_HLOS, hlos_err_m, days, seconds, real(validity_flag, r8), obs, obskey)
 
