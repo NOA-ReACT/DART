@@ -17,7 +17,6 @@ EXTRA=obs_errors.path_names
 
 programs=(
 convert_aeolus_l2b
-empty_obs
 obs_seq_to_netcdf
 obs_sequence_tool
 advance_time
