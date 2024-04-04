@@ -118,9 +118,9 @@ program convert_aeolus_l2b
    call check_product_type_and_class()
 
    ! Get number of windresults
-   num_mie = coda_fetch_uint32(coda_pf, ["sph", "NumMieWindResults"])
+   num_mie = coda_fetch_uint32(coda_pf, [character(len=40) :: "sph", "NumMieWindResults"])
    write(*,*) 'Num of mie windresults', num_mie
-   num_rayleigh = coda_fetch_uint32(coda_pf, ["sph", "NumRayleighWindResults"])
+   num_rayleigh = coda_fetch_uint32(coda_pf, [character(len=40) :: "sph", "NumRayleighWindResults"])
    write(*,*) 'Num of rayleigh windresults', num_rayleigh
 
    write(*,*) 'Total windresults' , num_mie + num_rayleigh
@@ -150,30 +150,30 @@ program convert_aeolus_l2b
    ! welcome.
    do i = 0, num_mie - 1
       ! Time
-      obs_seconds_from_base = coda_fetch_double(coda_pf, ["mie_geolocation", "?", "windresult_geolocation", "datetime_cog"], i)
+      obs_seconds_from_base = coda_fetch_double(coda_pf, [character(len=40) :: "mie_geolocation", "?", "windresult_geolocation", "datetime_cog"], i)
       obs_timestamp = set_date(2000, 1, 1, 0, 0, 0) ! Base time
       obs_timestamp = increment_time(obs_timestamp, INT(obs_seconds_from_base))
       call get_time(obs_timestamp, seconds, days)
 
       ! Geolocation
-      obs_id = coda_fetch_uint32(coda_pf, ["mie_geolocation", "?", "wind_result_id"], i)
-      altitude = coda_fetch_int32(coda_pf, ["mie_geolocation", "?", "windresult_geolocation", "altitude_vcog"], i)
-      azimuth_a = coda_fetch_double(coda_pf, ["mie_geolocation", "?", "windresult_geolocation", "los_azimuth"], i)
+      obs_id = coda_fetch_uint32(coda_pf, [character(len=40) :: "mie_geolocation", "?", "wind_result_id"], i)
+      altitude = coda_fetch_int32(coda_pf, [character(len=40) :: "mie_geolocation", "?", "windresult_geolocation", "altitude_vcog"], i)
+      azimuth_a = coda_fetch_double(coda_pf, [character(len=40) :: "mie_geolocation", "?", "windresult_geolocation", "los_azimuth"], i)
 
       ! For some reason, lat/lon are not correctly converted by CODA
       ! We disable automatic conversion here and do it manually
       coda_result = coda_set_option_perform_conversions(0)
 
-      latitude = coda_fetch_int32(coda_pf, ["mie_geolocation", "?", "windresult_geolocation", "latitude_cog"], i) / 1000000.0
-      longitude = coda_fetch_int32(coda_pf, ["mie_geolocation", "?", "windresult_geolocation", "longitude_cog"], i) / 1000000.0
+      latitude = coda_fetch_int32(coda_pf, [character(len=40) :: "mie_geolocation", "?", "windresult_geolocation", "latitude_cog"], i) / 1000000.0
+      longitude = coda_fetch_int32(coda_pf, [character(len=40) :: "mie_geolocation", "?", "windresult_geolocation", "longitude_cog"], i) / 1000000.0
 
       coda_result = coda_set_option_perform_conversions(1)
 
       ! HLOS & QC
-      hlos = coda_fetch_int32(coda_pf, ["mie_hloswind", "?", "windresult", "mie_wind_velocity"], i)
-      hlos_err = coda_fetch_uint32(coda_pf, ["mie_wind_prod_conf_data", "?", "mie_wind_qc", "hlos_error_estimate"], i)
-      validity_flag = coda_fetch_uint8(coda_pf, ["mie_hloswind", "?", "windresult", "validity_flag"], i)
-      observation_type = coda_fetch_uint8(coda_pf, ["mie_hloswind", "?", "windresult", "observation_type"], i)
+      hlos = coda_fetch_int32(coda_pf, [character(len=40) :: "mie_hloswind", "?", "windresult", "mie_wind_velocity"], i)
+      hlos_err = coda_fetch_uint32(coda_pf, [character(len=40) :: "mie_wind_prod_conf_data", "?", "mie_wind_qc", "hlos_error_estimate"], i)
+      validity_flag = coda_fetch_uint8(coda_pf, [character(len=40) :: "mie_hloswind", "?", "windresult", "validity_flag"], i)
+      observation_type = coda_fetch_uint8(coda_pf, [character(len=40) :: "mie_hloswind", "?", "windresult", "observation_type"], i)
 
       ! Convert HLOS from cm/s to m/s
       hlos_m = real(hlos, r8) / 100.0
@@ -200,30 +200,30 @@ program convert_aeolus_l2b
    end do
    do i = 0, num_rayleigh - 1
       ! Time
-      obs_seconds_from_base = coda_fetch_double(coda_pf, ["rayleigh_geolocation", "?", "windresult_geolocation", "datetime_cog"], i)
+      obs_seconds_from_base = coda_fetch_double(coda_pf, [character(len=40) :: "rayleigh_geolocation", "?", "windresult_geolocation", "datetime_cog"], i)
       obs_timestamp = set_date(2000, 1, 1, 0, 0, 0) ! Base time
       obs_timestamp = increment_time(obs_timestamp, INT(obs_seconds_from_base))
       call get_time(obs_timestamp, seconds, days)
 
       ! Geolocation
-      obs_id = coda_fetch_uint32(coda_pf, ["rayleigh_geolocation", "?", "wind_result_id"], i)
-      altitude = coda_fetch_int32(coda_pf, ["rayleigh_geolocation", "?", "windresult_geolocation", "altitude_vcog"], i)
-      azimuth_a = coda_fetch_double(coda_pf, ["rayleigh_geolocation", "?", "windresult_geolocation", "los_azimuth"], i)
+      obs_id = coda_fetch_uint32(coda_pf, [character(len=40) :: "rayleigh_geolocation", "?", "wind_result_id"], i)
+      altitude = coda_fetch_int32(coda_pf, [character(len=40) :: "rayleigh_geolocation", "?", "windresult_geolocation", "altitude_vcog"], i)
+      azimuth_a = coda_fetch_double(coda_pf, [character(len=40) :: "rayleigh_geolocation", "?", "windresult_geolocation", "los_azimuth"], i)
 
       ! For some reason, lat/lon are not correctly converted by CODA
       ! We disable automatic conversion here and do it manually
       coda_result = coda_set_option_perform_conversions(0)
 
-      latitude = coda_fetch_int32(coda_pf, ["rayleigh_geolocation", "?", "windresult_geolocation", "latitude_cog"], i) / 1000000.0
-      longitude = coda_fetch_int32(coda_pf, ["rayleigh_geolocation", "?", "windresult_geolocation", "longitude_cog"], i) / 1000000.0
+      latitude = coda_fetch_int32(coda_pf, [character(len=40) :: "rayleigh_geolocation", "?", "windresult_geolocation", "latitude_cog"], i) / 1000000.0
+      longitude = coda_fetch_int32(coda_pf, [character(len=40) :: "rayleigh_geolocation", "?", "windresult_geolocation", "longitude_cog"], i) / 1000000.0
 
       coda_result = coda_set_option_perform_conversions(1)
 
       ! HLOS & QC
-      hlos = coda_fetch_int32(coda_pf, ["rayleigh_hloswind", "?", "windresult", "rayleigh_wind_velocity"], i)
-      hlos_err = coda_fetch_uint32(coda_pf, ["rayleigh_wind_prod_conf_data", "?", "rayleigh_wind_qc", "hlos_error_estimate"], i)
-      validity_flag = coda_fetch_uint8(coda_pf, ["rayleigh_hloswind", "?", "windresult", "validity_flag"], i)
-      observation_type = coda_fetch_uint8(coda_pf, ["rayleigh_hloswind", "?", "windresult", "observation_type"], i)
+      hlos = coda_fetch_int32(coda_pf, [character(len=40) :: "rayleigh_hloswind", "?", "windresult", "rayleigh_wind_velocity"], i)
+      hlos_err = coda_fetch_uint32(coda_pf, [character(len=40) :: "rayleigh_wind_prod_conf_data", "?", "rayleigh_wind_qc", "hlos_error_estimate"], i)
+      validity_flag = coda_fetch_uint8(coda_pf, [character(len=40) :: "rayleigh_hloswind", "?", "windresult", "validity_flag"], i)
+      observation_type = coda_fetch_uint8(coda_pf, [character(len=40) :: "rayleigh_hloswind", "?", "windresult", "observation_type"], i)
 
       ! Convert HLOS from cm/s to m/s
       hlos_m = real(hlos, r8) / 100.0
@@ -317,11 +317,11 @@ contains
 
       do idx = 1, size(path)
          ! Use index if path node is ?
-         if (present(index) .and. path(idx) == '?') then
+         if (present(index) .and. trim(path(idx)) == '?') then
             index_c = index
             coda_result = coda_cursor_goto_array_element_by_index(cursor, index_c)
          else
-            coda_result = coda_cursor_goto_record_field_by_name(cursor, path(idx))
+            coda_result = coda_cursor_goto_record_field_by_name(cursor, trim(path(idx)))
          end if
          call handle_coda_error()
       end do
