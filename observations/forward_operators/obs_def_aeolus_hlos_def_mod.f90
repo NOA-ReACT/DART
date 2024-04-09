@@ -133,6 +133,9 @@ contains
 
       if (.not. module_initialized) call initialize_module
 
+      lastKey = lastKey + 1
+      key = lastKey
+
       is_ascii = ascii_file_format(fform)
       write(string2, *)'observation #', obsID
 
