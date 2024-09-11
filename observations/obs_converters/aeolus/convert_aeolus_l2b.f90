@@ -96,7 +96,7 @@ program convert_aeolus_l2b
       write(*,*) 'Usage: convert_aeolus_l2b <input_file> (<output_file>)'
       write(*,*) 'input_file should point to an AEOLUS L2B wind profile file (.DBL)'
       write(*,*) 'If output file is omitted, then obs_seq.aeolus is used'
-      stop
+      stop 2
    end if
    if (command_argument_count() .ge. 1) then
       call get_command_argument(1, value=obs_in_file)
@@ -129,7 +129,7 @@ program convert_aeolus_l2b
    max_obs = num_mie + num_rayleigh + 1
    if (max_obs == 0) then
       write(*,*) 'Error: no windresults found'
-      stop
+      stop 1
    end if
 
    ! Start writing observations
@@ -274,7 +274,7 @@ contains
       err = coda_get_errno()
       call coda_errno_to_string(err, errstr)
       write(*,*) 'Error: ' // errstr
-      stop
+      stop 1
    end subroutine
 
    ! Verifies that the opened DBL file has the correct product type and class
@@ -289,7 +289,7 @@ contains
 
       if (product_class .ne. 'AEOLUS') then
          write(*,*) 'Error: product class is not AEOLUS'
-         stop
+         stop 1
       end if
 
       ! Check if product type is ALD_U_N_2B
@@ -299,7 +299,7 @@ contains
 
       if (product_type .ne. 'ALD_U_N_2B') then
          write(*,*) 'Error: product type is not ALD_U_N_2B'
-         stop
+         stop 1
       end if
    end subroutine
 
