@@ -58,6 +58,10 @@ program convert_aeolus_l2b
    integer*4 :: num_mie = 0
    integer*4 :: num_rayleigh = 0
 
+   ! Count in output file
+   integer*4 :: num_mie_out = 0
+   integer*4 :: num_rayleigh_out = 0
+
    ! For looping
    integer :: i
 
@@ -185,7 +189,7 @@ program convert_aeolus_l2b
       end if
 
       ! Reject observations w/ instrument error larger than 12m/s
-      if (hlos_err_m > 4.0) then
+      if (hlos_err_m > 12.0) then
          cycle
       end if
 
@@ -197,6 +201,8 @@ program convert_aeolus_l2b
       call create_3d_obs(latitude, longitude, altitude, VERTISHEIGHT, hlos_m, AEOLUS_L2B_HLOS, hlos_err_m, days, seconds, real(validity_flag, r8), obs, obskey)
 
       call add_obs_to_seq(obs_seq, obs, obs_timestamp, prev_obs, prev_time, first_obs)
+
+      num_mie_out = num_mie_out + 1
    end do
    do i = 0, num_rayleigh - 1
       ! Time
@@ -234,22 +240,29 @@ program convert_aeolus_l2b
          cycle
       end if
 
-      ! Reject observations w/ instrument error larger than 12m/s
-      if (hlos_err_m > 4.0) then
+      ! Reject observations w/ instrument error larger than 10m/s
+      if (hlos_err_m > 10.0) then
          cycle
       end if
 
       call set_aeolus_metadata(obskey, obs_id, azimuth_a)
 
-      ! We use a hardcoded 4.0m/s value for the observation error here
-      hlos_err_m = 4.0
+      ! We use a hardcoded 4.5m/s value for the observation error here
+      hlos_err_m = 4.5
       ! TODO Dynamically compute perhaps?
       call create_3d_obs(latitude, longitude, altitude, VERTISHEIGHT, hlos_m, AEOLUS_L2B_HLOS, hlos_err_m, days, seconds, real(validity_flag, r8), obs, obskey)
 
       call add_obs_to_seq(obs_seq, obs, obs_timestamp, prev_obs, prev_time, first_obs)
+
+      num_rayleigh_out = num_rayleigh_out + 1
    end do
 
    call write_obs_seq(obs_seq, obs_out_file)
+
+   ! Print how many obs made the cut
+   write(*,*) 'Mie obs written:', num_mie_out
+   write(*,*) 'Rayleigh obs written:', num_rayleigh_out
+   write(*,*) 'Total obs written:', num_mie_out + num_rayleigh_out
 
    ! Clean-up coda
    coda_result = coda_close(coda_pf)
