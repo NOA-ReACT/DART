@@ -204,8 +204,19 @@
 !   QTY_CLOUD_TOP_PRESSURE
 !   QTY_ABSOLUTE_HUMIDITY
 !
+! !  WRF-GOCART aerosol mixing ratio bins
+!   QTY_GC_DUST_BIN1                       ! WRF-GOCART Dust bin 1 mixing ratio (DUST_1)
+!   QTY_GC_DUST_BIN2                       ! WRF-GOCART Dust bin 2 mixing ratio (DUST_2)
+!   QTY_GC_DUST_BIN3                       ! WRF-GOCART Dust bin 3 mixing ratio (DUST_3)
+!   QTY_GC_DUST_BIN4                       ! WRF-GOCART Dust bin 4 mixing ratio (DUST_4)
+!   QTY_GC_DUST_BIN5                       ! WRF-GOCART Dust bin 5 mixing ratio (DUST_5)
+!
 ! ! HLOS kind for satellite wind profilers (e.g. AEOLUS)
 !   QTY_HLOS_WIND
+!
+! ! kinds for atmospheric lidars
+!   QTY_ATM_LIDAR_EXTINCTION
+!   QTY_ATM_LIDAR_BACKSCATTER
 !
 ! END DART PREPROCESS QUANTITY DEFINITIONS
 
