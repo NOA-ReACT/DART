@@ -219,7 +219,6 @@ contains
       ! Then compute the HLOS wind vector
       az_rad = obs_metadata(key)%azimuth_a * DEG2RAD
       val = -u * sin(az_rad) - v * cos(az_rad)
-      val = -1 * val
    end subroutine get_hlos
 
 
