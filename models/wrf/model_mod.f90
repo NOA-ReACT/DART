@@ -88,6 +88,11 @@ use      obs_kind_mod,   only : QTY_U_WIND_COMPONENT, QTY_V_WIND_COMPONENT, &
                                 QTY_VORTEX_PMIN, QTY_VORTEX_WMAX, &
                                 QTY_SKIN_TEMPERATURE, QTY_LANDMASK, &
                                 QTY_SURFACE_TYPE, &
+                                QTY_GC_DUST_BIN1, &
+                                QTY_GC_DUST_BIN2, &
+                                QTY_GC_DUST_BIN3, &
+                                QTY_GC_DUST_BIN4, &
+                                QTY_GC_DUST_BIN5, &
                                 get_index_for_quantity, get_num_quantities, &
                                 get_name_for_quantity
 
@@ -334,7 +339,8 @@ TYPE wrf_static_data_for_dart
 
    integer :: type_u10, type_v10, type_t2, type_th2, type_q2, &
               type_ps, type_mu, type_tsk, type_tslb, type_sh2o, &
-              type_smois, type_2dflash
+              type_smois, type_2dflash, &
+              type_dust_1, type_dust_2, type_dust_3, type_dust_4, type_dust_5
 
    integer :: number_of_wrf_variables
    integer(i8), dimension(:,:), pointer :: var_index
@@ -749,6 +755,11 @@ WRFDomains : do id=1,num_domains
    wrf%dom(id)%type_fall_spd = get_type_ind_from_type_string(id,'FALL_SPD_Z_WEIGHTED')
    !wrf%dom(id)%type_fall_spd = get_type_ind_from_type_string(id,'VT_DBZ_WT')
    wrf%dom(id)%type_hdiab  = get_type_ind_from_type_string(id,'H_DIABATIC')
+   wrf%dom(id)%type_dust_1 = get_type_ind_from_type_string(id,'DUST_1')
+   wrf%dom(id)%type_dust_2 = get_type_ind_from_type_string(id,'DUST_2')
+   wrf%dom(id)%type_dust_3 = get_type_ind_from_type_string(id,'DUST_3')
+   wrf%dom(id)%type_dust_4 = get_type_ind_from_type_string(id,'DUST_4')
+   wrf%dom(id)%type_dust_5 = get_type_ind_from_type_string(id,'DUST_5')
 
    ! variable bound table for setting upper and lower bounds of variables 
    var_bounds_table(1:wrf%dom(id)%number_of_wrf_variables,1) = wrf%dom(id)%lower_bound
@@ -1407,7 +1418,12 @@ else
        obs_kind == QTY_RADAR_REFLECTIVITY .or. &
        obs_kind == QTY_DIFFERENTIAL_REFLECTIVITY .or. &
        obs_kind == QTY_SPECIFIC_DIFFERENTIAL_PHASE .or. &
-       obs_kind == QTY_CLOUD_FRACTION) then
+       obs_kind == QTY_CLOUD_FRACTION .or. &
+       obs_kind == QTY_GC_DUST_BIN1 .or. &
+       obs_kind == QTY_GC_DUST_BIN2 .or. &
+       obs_kind == QTY_GC_DUST_BIN3 .or. &
+       obs_kind == QTY_GC_DUST_BIN4 .or. &
+       obs_kind == QTY_GC_DUST_BIN5) then
 
        call simple_interp_distrib(fld, wrf, id, i, j, k, obs_kind, dxm, dx, dy, dym, uniquek, ens_size, state_handle)
        if (all(fld == missing_r8)) goto 200
@@ -8372,6 +8388,21 @@ else if ( ( obs_kind == QTY_GEOPOTENTIAL_HEIGHT )        .and. ( wrf%dom(id)%typ
 else if ( ( obs_kind == QTY_2M_TEMPERATURE )        .and. ( wrf%dom(id)%type_t2 >= 0 ) )then
    part_of_state_vector = .true.
    wrf_type = wrf%dom(id)%type_t2
+else if ( ( obs_kind == QTY_GC_DUST_BIN1 )        .and. ( wrf%dom(id)%type_dust_1 >= 0 ) )then
+   part_of_state_vector = .true.
+   wrf_type = wrf%dom(id)%type_dust_1
+else if ( ( obs_kind == QTY_GC_DUST_BIN2 )        .and. ( wrf%dom(id)%type_dust_2 >= 0 ) )then
+   part_of_state_vector = .true.
+   wrf_type = wrf%dom(id)%type_dust_2
+else if ( ( obs_kind == QTY_GC_DUST_BIN3 )        .and. ( wrf%dom(id)%type_dust_3 >= 0 ) )then
+   part_of_state_vector = .true.
+   wrf_type = wrf%dom(id)%type_dust_3
+else if ( ( obs_kind == QTY_GC_DUST_BIN4 )        .and. ( wrf%dom(id)%type_dust_4 >= 0 ) )then
+   part_of_state_vector = .true.
+   wrf_type = wrf%dom(id)%type_dust_4
+else if ( ( obs_kind == QTY_GC_DUST_BIN5 )        .and. ( wrf%dom(id)%type_dust_5 >= 0 ) )then
+   part_of_state_vector = .true.
+   wrf_type = wrf%dom(id)%type_dust_5
 else
    call error_handler(E_MSG, 'obs_kind_in_state_vector', &
       'obs_kind "'//trim(get_name_for_quantity(obs_kind))//'" is not in state vector 2', &
