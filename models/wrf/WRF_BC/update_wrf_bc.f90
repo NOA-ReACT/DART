@@ -71,7 +71,7 @@ real(r8), allocatable, dimension(:,  :) :: mu, mu_mean, mub, msfu, msfv, msfm
 
 integer :: east_end, north_end
 
-logical, parameter :: debug = .false.
+logical, parameter :: debug = .true.
 
 real(r8) :: bdyfrq_old, bdyfrq, infl
 
@@ -472,6 +472,13 @@ endif
             full3d(:,:,:)=w(:,:,:)
             full3d_mean(:,:,:)=w_mean(:,:,:)
          case ('T', 'PH', 'QVAPOR', 'QCLOUD', 'QRAIN', 'QICE', 'QSNOW', 'QGRAUP', 'QNICE') ;
+            ! If the boundary variable is called 'T' and WRF has `use_theta_m = 1`, then we must use the `THM` 3D field.
+            if (trim(var3d(n)) == 'T') then
+               var3d(n) = 'THM'
+               if (debug) then
+                  print *, 'Using wrfinput THM instead of T'
+               end if
+            endif
 
             call get_var_3d_real_cdf( wrf_output_file, trim(var3d(n)), full3d, &
                                       dims(1), dims(2), dims(3), 1, debug )
@@ -483,6 +490,11 @@ endif
                write(unit=*, fmt='(3a,e20.12,4x)') &
                     'Before couple Sampe ', trim(var3d(n)), &
                     '=', full3d(dims(1)/2,dims(2)/2,dims(3)/2)
+            endif
+
+            ! Reset `THM` to `T` so that it gets assigned to the correct wrfbdy variable
+            if (trim(var3d(n)) == 'THM') then
+               var3d(n) = 'T'
             endif
 
             do k=1,dims(3)
