@@ -1,4 +1,5 @@
 data/**.DBL
 data/**.dbl
 work/convert_aeolus_l2b
+work/convert_aeolus_l2a
 work/obs_seq*
