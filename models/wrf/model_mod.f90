@@ -1167,8 +1167,9 @@ else
    if(is_vertical(location,"LEVEL")) then
       ! Ob is by model level
       zloc = xyz_loc(3)
+      where (zloc >= wrf%dom(id)%bt) istatus = 2
 
-   elseif(is_vertical(location,"PRESSURE")) then
+   else if(is_vertical(location,"PRESSURE")) then
       ! Ob is by pressure: get corresponding mass level zloc from
       ! computed column pressure profile
       call get_model_pressure_profile_distrib(i,j,dx,dy,dxm,dym,wrf%dom(id)%bt,id,v_p,state_handle, ens_size)
@@ -2930,6 +2931,9 @@ else
    ! member (e) at a time.
    do e = 1, ens_size
 
+      ! We don't have to do vertical interpolation for invalid vertical locations
+      if (istatus(e) == 2) cycle
+
       if ( fld(1,e) == missing_r8 ) then
 
          expected_obs(e) = missing_r8
@@ -2989,10 +2993,13 @@ endif  ! end of "if ( obs_kind < 0 )"
 
 200  continue
 
-if (all(fld == missing_r8)) then
-   expected_obs(:) = missing_r8
-   istatus(:) = 99
-endif 
+do e = 1, ens_size
+   if (all(fld(:, e) == missing_r8) .and. istatus(e) /= 2) then
+      expected_obs(e) = missing_r8
+      istatus(e) = 99
+   endif
+enddo
+
 
 ! Now that we are done, check to see if a missing value somehow 
 ! made it through without already having set an error return code.
