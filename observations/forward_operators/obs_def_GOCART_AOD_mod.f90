@@ -68,9 +68,7 @@ module obs_def_GOCART_AOD_mod
    type :: optical_properties_csv
       integer :: wavelength ! Wavelength of the laser [nm]
       character(len=6) :: species ! Species name
-      real(r8) :: qext ! Extinction efficiency [unitless]
-      real(r8) :: rho ! Particle density [kg/m^3]
-      real(r8) :: effective_diameter ! Effective diameter [m]
+      real(r8) :: ext_eff ! Extinction efficiency [meter ** 2 / kilogram]
    end type optical_properties_csv
 
    ! Represents the optical properties of an aerosol bin
@@ -108,16 +106,10 @@ contains
          read(f, *, iostat=fstat) line
          if (fstat /= 0) exit
 
-         ! Fix units
-         line%rho = line%rho * 1e6 ! Convert from g/cm^3 to kg/m^3
-         line%effective_diameter = line%effective_diameter * 1e-6 ! Convert from um to m
-
          ! Copy to props
          props%wavelength = line%wavelength
          props%species = line%species
-         props%qext = line%qext
-         props%rho = line%rho
-         props%effective_diameter = line%effective_diameter
+         props%ext_eff = line%ext_eff
 
          ! Identify the quantity type
          if (line%species == 'DUST_1') then
@@ -150,9 +142,7 @@ contains
             write(*, *) 'Wavelength: ', optical_props(i)%wavelength
             write(*, *) 'Species: ', optical_props(i)%species
             write(*, *) 'DART quantity: ', optical_props(i)%qty
-            write(*, *) 'Qext: ', optical_props(i)%qext
-            write(*, *) 'Rho: ', optical_props(i)%rho
-            write(*, *) 'Effective diameter: ', optical_props(i)%effective_diameter
+            write(*, *) 'Ext_eff: ', optical_props(i)%ext_eff
          end do
       endif
 
@@ -207,13 +197,15 @@ contains
       ! Storage for model variables
       real(r8), allocatable :: concentrations(:, :, :), extinctions(:, :, :) ! (ens_size, model_levels, size(obs_kinds))
       real(r8), allocatable :: rho(:, :) ! (ens_size, model_levels)
+      real(r8) :: current_level_height(ens_size)
+      real(r8) :: current_level_extinction(ens_size)
 
       ! Initialize the module
       call initialize_module()
 
       ! Determine how many levels the model has
       call determine_model_levels(location, state_handle, ens_size, 500, model_levels, istatus)
-      print*, 'Model has ', model_levels, ' levels'
+      ! print*, 'Model has ', model_levels, ' levels'
 
       allocate(level_heights(ens_size, model_levels))
       allocate(rho(ens_size, model_levels))
@@ -226,16 +218,16 @@ contains
 
       ! Get the geopotential height of each model level
       call get_model_heights(state_handle, ens_size, location, model_levels, level_heights, istatus)
-      if (debug) then
-         ! Print geopotential heights of first member
-         write(*, *) 'Geopotential heights of first member:'
-         do current_level = 1, model_levels
-            write(*, *) level_heights(1, current_level)
-         end do
-      end if
+      ! if (debug) then
+      !    ! Print geopotential heights of first member
+      !    ! write(*, *) 'Geopotential heights of first member:'
+      !    do current_level = 1, model_levels
+      !       write(*, *) level_heights(1, current_level)
+      !    end do
+      ! end if
 
       ! Get model density for all levels
-      if (debug) write(*, *) 'Interpolating density'
+      ! if (debug) write(*, *) 'Interpolating density'
       do current_level = 1, model_levels
          call make_location_vertislevel(location, vert_location, real(current_level - 1, r8))
          call interpolate(state_handle, ens_size, vert_location, QTY_DENSITY, rho(:, current_level), istatus)
@@ -244,31 +236,42 @@ contains
       end do
 
       ! For each obs_type, get the concentrations and compute the extinctions
-      if (debug) write(*, *) 'Computing extinctions'
+      ! if (debug) print *, 'Computing extinctions'
       do obs_kind = 1, size(obs_kinds)
-         if (debug) write (*, *) 'Computing for obs_kind ', obs_kinds(obs_kind)
+         ! if (debug) print *, 'Computing for obs_kind ', obs_kinds(obs_kind)
 
          call get_optical_props(532, obs_kinds(obs_kind), props)
 
          do current_level = 1, model_levels
             ! Get the mixing ratios for this obs_type
             call make_location_vertislevel(location, vert_location, real(current_level - 1, r8))
-            call interpolate(state_handle, ens_size, vert_location, obs_kinds(obs_kind), concentrations(:, current_level, obs_kind), istatus)
+            call interpolate(state_handle, ens_size, vert_location, obs_kinds(obs_kind), concentrations(:, current_level, obs_kind), this_istatus)
             call track_status(ens_size, this_istatus, concentrations(:, current_level, obs_kind), istatus, return_now)
+
             if (return_now) return
 
             ! Multiply with density to get concentrations
-            concentrations(:, current_level, obs_kind) = concentrations(:, current_level, obs_kind) * rho(:, current_level) * 1e-6 ! Convert from ug/m^3 to g/m^3
+            concentrations(:, current_level, obs_kind) = concentrations(:, current_level, obs_kind) * rho(:, current_level) * 1e-9 ! Convert from ug/m^3 to kg/m^3
 
             ! Use optical properties to compute extinction
-            extinctions(:, current_level, obs_kind) = (3 * concentrations(:, current_level, obs_kind) * props%qext) / (2 * props%rho * props%effective_diameter)
+            extinctions(:, current_level, obs_kind) = concentrations(:, current_level, obs_kind) * props%ext_eff
          end do
       end do
 
+      ! Print total extinction & concentration for each model level
+      ! do current_level = 1, model_levels
+      !    print*, 'Level', current_level, ", ", sum(concentrations(:, current_level, :), dim=2) / ens_size, "kg/m^3", ", ", sum(extinctions(:, current_level, :), dim=2) / ens_size, "1/m", "density ", sum(rho(:, current_level)) / ens_size
+      ! end do
+
+      ! print *, 'Total concentration for whole column', sum(sum(sum(concentrations(:, :, :), dim=2) / ens_size, dim=1), dim=1), "kg/m^3"
+
       ! To compute AOD, integrate the extinction over all levels
       aod = 0.0_r8
-      do current_level = 1, model_levels
-         aod = aod + sum(extinctions(:, current_level, :), dim=2) * (level_heights(:, current_level + 1) - level_heights(:, current_level))
+      do current_level = 1, model_levels - 1
+         current_level_height = (level_heights(:, current_level + 1) - level_heights(:, current_level))
+         current_level_extinction = (sum(extinctions(:, current_level + 1, :), dim=2) + sum(extinctions(:, current_level, :), dim=2)) / 2
+         aod = aod + (current_level_extinction * current_level_height)
+         ! print*, "Current level: ", current_level, " height: ", current_level_height, " total_extinction: ", current_level_extinction
       end do
       if (debug) write(*, *) 'AOD: ', aod
    end subroutine get_aod
@@ -363,7 +366,7 @@ contains
             call error_handler(E_ERR, 'get_model_heights', string1, source, revision, revdate)
          end if
 
-         print *, 'height for level ', current_level, ' is ', sum(interp_val) / ens_size
+         ! print *, 'height for level ', current_level, ' is ', sum(interp_val) / ens_size
          level_heights(:, current_level) = interp_val
       end do
    end subroutine get_model_heights
