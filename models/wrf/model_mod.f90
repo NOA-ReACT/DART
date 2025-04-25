@@ -94,6 +94,10 @@ use      obs_kind_mod,   only : QTY_U_WIND_COMPONENT, QTY_V_WIND_COMPONENT, &
                                 QTY_GC_DUST_BIN3, &
                                 QTY_GC_DUST_BIN4, &
                                 QTY_GC_DUST_BIN5, &
+                                QTY_GC_SEAS_BIN1, &
+                                QTY_GC_SEAS_BIN2, &
+                                QTY_GC_SEAS_BIN3, &
+                                QTY_GC_SEAS_BIN4, &
                                 get_index_for_quantity, get_num_quantities, &
                                 get_name_for_quantity
 
@@ -342,7 +346,8 @@ TYPE wrf_static_data_for_dart
    integer :: type_u10, type_v10, type_t2, type_th2, type_q2, &
               type_ps, type_mu, type_tsk, type_tslb, type_sh2o, &
               type_smois, type_2dflash, &
-              type_dust_1, type_dust_2, type_dust_3, type_dust_4, type_dust_5
+              type_dust_1, type_dust_2, type_dust_3, type_dust_4, type_dust_5, &
+              type_seas_1, type_seas_2, type_seas_3, type_seas_4
 
    integer :: number_of_wrf_variables
    integer(i8), dimension(:,:), pointer :: var_index
@@ -773,6 +778,10 @@ WRFDomains : do id=1,num_domains
    wrf%dom(id)%type_dust_3 = get_type_ind_from_type_string(id,'DUST_3')
    wrf%dom(id)%type_dust_4 = get_type_ind_from_type_string(id,'DUST_4')
    wrf%dom(id)%type_dust_5 = get_type_ind_from_type_string(id,'DUST_5')
+   wrf%dom(id)%type_seas_1 = get_type_ind_from_type_string(id,'SEAS_1')
+   wrf%dom(id)%type_seas_2 = get_type_ind_from_type_string(id,'SEAS_2')
+   wrf%dom(id)%type_seas_3 = get_type_ind_from_type_string(id,'SEAS_3')
+   wrf%dom(id)%type_seas_4 = get_type_ind_from_type_string(id,'SEAS_4')
 
    ! variable bound table for setting upper and lower bounds of variables 
    var_bounds_table(1:wrf%dom(id)%number_of_wrf_variables,1) = wrf%dom(id)%lower_bound
@@ -1439,7 +1448,11 @@ else
        obs_kind == QTY_GC_DUST_BIN2 .or. &
        obs_kind == QTY_GC_DUST_BIN3 .or. &
        obs_kind == QTY_GC_DUST_BIN4 .or. &
-       obs_kind == QTY_GC_DUST_BIN5) then
+       obs_kind == QTY_GC_DUST_BIN5 .or. &
+       obs_kind == QTY_GC_SEAS_BIN1 .or. &
+       obs_kind == QTY_GC_SEAS_BIN2 .or. &
+       obs_kind == QTY_GC_SEAS_BIN3 .or. &
+       obs_kind == QTY_GC_SEAS_BIN4) then
 
        call simple_interp_distrib(fld, wrf, id, i, j, k, obs_kind, dxm, dx, dy, dym, uniquek, ens_size, state_handle)
        if (all(fld == missing_r8)) goto 200
@@ -8448,6 +8461,18 @@ else if ( ( obs_kind == QTY_GC_DUST_BIN4 )        .and. ( wrf%dom(id)%type_dust_
 else if ( ( obs_kind == QTY_GC_DUST_BIN5 )        .and. ( wrf%dom(id)%type_dust_5 >= 0 ) )then
    part_of_state_vector = .true.
    wrf_type = wrf%dom(id)%type_dust_5
+else if ( ( obs_kind == QTY_GC_SEAS_BIN1 )        .and. ( wrf%dom(id)%type_seas_1 >= 0 ) )then
+   part_of_state_vector = .true.
+   wrf_type = wrf%dom(id)%type_seas_1
+else if ( ( obs_kind == QTY_GC_SEAS_BIN2 )        .and. ( wrf%dom(id)%type_seas_2 >= 0 ) )then
+   part_of_state_vector = .true.
+   wrf_type = wrf%dom(id)%type_seas_2
+else if ( ( obs_kind == QTY_GC_SEAS_BIN3 )        .and. ( wrf%dom(id)%type_seas_3 >= 0 ) )then
+   part_of_state_vector = .true.
+   wrf_type = wrf%dom(id)%type_seas_3
+else if ( ( obs_kind == QTY_GC_SEAS_BIN4 )        .and. ( wrf%dom(id)%type_seas_4 >= 0 ) )then
+   part_of_state_vector = .true.
+   wrf_type = wrf%dom(id)%type_seas_4
 else
    call error_handler(E_MSG, 'obs_kind_in_state_vector', &
       'obs_kind "'//trim(get_name_for_quantity(obs_kind))//'" is not in state vector 2', &
