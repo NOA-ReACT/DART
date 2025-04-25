@@ -45,7 +45,9 @@ module obs_def_GOCART_AOD_mod
       VERTISHEIGHT, VERTISLEVEL, VERTISUNDEF, set_location_missing
    use     obs_kind_mod, only : QTY_AOD, QTY_DENSITY, QTY_GEOPOTENTIAL_HEIGHT, &
       QTY_GC_DUST_BIN1, QTY_GC_DUST_BIN2, QTY_GC_DUST_BIN3, &
-      QTY_GC_DUST_BIN4, QTY_GC_DUST_BIN5
+      QTY_GC_DUST_BIN4, QTY_GC_DUST_BIN5, &
+      QTY_GC_SEAS_BIN1, QTY_GC_SEAS_BIN2, QTY_GC_SEAS_BIN3, &
+      QTY_GC_SEAS_BIN4
    use  assim_model_mod, only : interpolate
    use obs_def_utilities_mod, only : track_status
    use ensemble_manager_mod,  only : ensemble_type
@@ -122,6 +124,14 @@ contains
             props%qty = QTY_GC_DUST_BIN4
          else if (line%species == 'DUST_5') then
             props%qty = QTY_GC_DUST_BIN5
+         else if (line%species == 'SEAS_1') then
+            props%qty = QTY_GC_SEAS_BIN1
+         else if (line%species == 'SEAS_2') then
+            props%qty = QTY_GC_SEAS_BIN2
+         else if (line%species == 'SEAS_3') then
+            props%qty = QTY_GC_SEAS_BIN3
+         else if (line%species == 'SEAS_4') then
+            props%qty = QTY_GC_SEAS_BIN4
          else
             write(*, *) 'Unknown species ignored: ', line%species
             cycle
@@ -192,7 +202,8 @@ contains
       integer :: this_istatus(ens_size)
 
       ! Which observation kinds to use for AOD
-      integer :: obs_kinds(5) = [QTY_GC_DUST_BIN1, QTY_GC_DUST_BIN2, QTY_GC_DUST_BIN3, QTY_GC_DUST_BIN4, QTY_GC_DUST_BIN5]
+      integer :: obs_kinds(9) = [QTY_GC_DUST_BIN1, QTY_GC_DUST_BIN2, QTY_GC_DUST_BIN3, QTY_GC_DUST_BIN4, QTY_GC_DUST_BIN5, &
+                                 QTY_GC_SEAS_BIN1, QTY_GC_SEAS_BIN2, QTY_GC_SEAS_BIN3, QTY_GC_SEAS_BIN4]
 
       ! Storage for model variables
       real(r8), allocatable :: concentrations(:, :, :), extinctions(:, :, :) ! (ens_size, model_levels, size(obs_kinds))

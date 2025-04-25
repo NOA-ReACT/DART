@@ -210,6 +210,10 @@
 !   QTY_GC_DUST_BIN3                       ! WRF-GOCART Dust bin 3 mixing ratio (DUST_3)
 !   QTY_GC_DUST_BIN4                       ! WRF-GOCART Dust bin 4 mixing ratio (DUST_4)
 !   QTY_GC_DUST_BIN5                       ! WRF-GOCART Dust bin 5 mixing ratio (DUST_5)
+!   QTY_GC_SEAS_BIN1                       ! WRF-GOCART Sea salt bin 1 mixing ratio (SEAS_1)
+!   QTY_GC_SEAS_BIN2                       ! WRF-GOCART Sea salt bin 2 mixing ratio (SEAS_2)
+!   QTY_GC_SEAS_BIN3                       ! WRF-GOCART Sea salt bin 3 mixing ratio (SEAS_3)
+!   QTY_GC_SEAS_BIN4                       ! WRF-GOCART Sea salt bin 4 mixing ratio (SEAS_4)
 !
 ! ! HLOS kind for satellite wind profilers (e.g. AEOLUS)
 !   QTY_HLOS_WIND
