@@ -109,17 +109,35 @@ program convert_universal_csv
   call register_module(source, revision, revdate)
 
   ! Handle arguments
-  if (command_argument_count() .eq. 0) then
-    write(*,*) 'Usage: convert_universal_csv <input_file> (<output_file>)'
-    write(*,*) 'input_file should point to CSV file containing the columns (! obs_type, longitude, latitude, vert, year, month, day, hour, minute, second, obs_value, obs_error, obs_meta) IN THIS ORDER. First row is assumed to the header.'
-    write(*,*) 'If output file is omitted, then obs_seq.csv is used'
-    stop
-  end if
   if (command_argument_count() .ge. 1) then
     call get_command_argument(1, value=csv_input_path)
     if (command_argument_count() .ge. 2) then
       call get_command_argument(2, value=obsseq_output_path)
     end if
+  else
+    ! No arguments provided - use stdin for input
+    csv_input_path = ""
+  end if
+
+  ! Check for help flag
+  if (command_argument_count() .ge. 1) then
+    if (trim(csv_input_path) == '-h' .or. trim(csv_input_path) == '--help') then
+      write(*,*) 'Usage: convert_universal_csv [input_file] [output_file]'
+      write(*,*) 'input_file: CSV file containing the columns (obs_type, longitude, latitude, vert, year, month, day, hour, minute, second, obs_value, obs_error, obs_meta) IN THIS ORDER.'
+      write(*,*) '           If omitted or "-", reads from stdin. First row is assumed to be the header.'
+      write(*,*) 'output_file: Output obs_seq file. If omitted, defaults to obs_seq.csv'
+      write(*,*) ''
+      write(*,*) 'Examples:'
+      write(*,*) '  convert_universal_csv data.csv obs_seq.out'
+      write(*,*) '  cat data.csv | convert_universal_csv'
+      write(*,*) '  convert_universal_csv - obs_seq.out < data.csv'
+      stop
+    end if
+  end if
+
+  ! Handle stdin input case
+  if (trim(csv_input_path) == "-") then
+    csv_input_path = ""
   end if
 
   ! Time setup
@@ -388,6 +406,7 @@ contains
   ! Reads a CSV file line by line and populates the data_array with the parsed
   ! observations. The number of records read is returned in num_records.
   ! The maximum number of records to read is specified by max_records.
+  ! If filename is empty, reads from stdin instead.
   subroutine read_csv_file(filename, data_array, num_records, max_records)
     character(len=*), intent(in) :: filename
     type(csv_line), intent(out) :: data_array(:)
@@ -397,19 +416,28 @@ contains
     integer :: unit_num, ios, line_num
     character(len=max_line_length) :: line
     type(csv_line) :: temp_data
-    logical :: is_valid
+    logical :: is_valid, use_stdin
 
     num_records = 0
     line_num = 0
+    use_stdin = (len_trim(filename) == 0)
 
-    ! Open file
-    open(newunit=unit_num, file=filename, status='old', action='read', iostat=ios)
-    if (ios /= 0) then
-      write(*,*) 'Error: Cannot open file: ', trim(filename)
-      return
+    if (use_stdin) then
+      ! Use stdin (unit 5)
+      unit_num = 5
+      write(*,*) 'Reading from stdin...'
+      ios = 0  ! Initialize ios for stdin reading
+    else
+      ! Open file
+      open(newunit=unit_num, file=filename, status='old', action='read', iostat=ios)
+      if (ios /= 0) then
+        write(*,*) 'Error: Cannot open file: ', trim(filename)
+        return
+      endif
+      write(*,*) 'Reading from file: ', trim(filename)
     endif
 
-    ! Read file line by line
+    ! Read file/stdin line by line
     do while (ios == 0 .and. num_records < max_records)
       read(unit_num, '(A)', iostat=ios) line
       if (ios /= 0) exit
@@ -418,6 +446,12 @@ contains
 
       ! Skip empty lines
       if (len_trim(line) == 0) cycle
+
+      ! Skip header line (first line)
+      if (line_num == 1) then
+        write(*,*) 'Skipping header line: ', trim(line)
+        cycle
+      endif
 
       ! Parse the line
       call parse_csv_line(line, temp_data, is_valid)
@@ -431,7 +465,9 @@ contains
 
     enddo
 
-    close(unit_num)
+    if (.not. use_stdin) then
+      close(unit_num)
+    endif
 
     write(*,*) 'Successfully read ', num_records, ' records from ', line_num, ' lines'
 
