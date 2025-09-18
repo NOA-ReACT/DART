@@ -8,10 +8,11 @@ program convert_universal_csv
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
-!   convert_universal_csv - program that reads CSV files in a specific format
-!                           and writes a DART obs_seq file. Implemented so you
-!                           can do most of your data wrangling in Python, where I
-!                           think it's more convenient.
+!   convert_from_wrf_ensembly - program that reads CSV files in a specific format
+!                               and writes a DART obs_seq file. Implemented so you
+!                               can do most of your data wrangling in Python, where I
+!                               think it's more convenient. Compatible with the
+!                               observation management suite of wrf-ensembly.
 !
 ! The CSV file should have the following columns:
 ! obs_type, longitude, latitude, vert, year, month, day, hour, minute, second,

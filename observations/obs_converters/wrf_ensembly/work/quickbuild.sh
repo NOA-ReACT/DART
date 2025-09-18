@@ -9,12 +9,12 @@ main() {
 export DART=$(git rev-parse --show-toplevel)
 source "$DART"/build_templates/buildconvfunctions.sh
 
-CONVERTER=universal_csv
+CONVERTER=wrf_ensembly
 LOCATION=threed_sphere
 
 
 programs=(
-convert_universal_csv
+convert_from_wrf_ensembly
 obs_sequence_tool
 obs_seq_to_netcdf
 )
