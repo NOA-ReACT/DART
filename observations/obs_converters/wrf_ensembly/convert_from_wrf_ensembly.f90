@@ -477,7 +477,7 @@ contains
   ! Maps the string representation of observation types from the CSV file to the
   ! corresponding DART obs_type and vertical type.
   subroutine map_observation_type(string_obs_type, dart_obs_type, dart_vert_type)
-    use location_mod, only : VERTISUNDEF
+    use location_mod, only : VERTISUNDEF, VERTISHEIGHT
     use obs_kind_mod
     implicit none
 
@@ -489,6 +489,9 @@ contains
      case ('AIRSENSE_AOD')
       dart_obs_type = AIRSENSE_AOD
       dart_vert_type = VERTISUNDEF
+     case ('EC_ATL_EXT355')
+      dart_obs_type = LIDAR_EXTINCTION
+      dart_vert_type = VERTISHEIGHT
      case default
       dart_obs_type = -1 ! Error value
       dart_vert_type = VERTISUNDEF
