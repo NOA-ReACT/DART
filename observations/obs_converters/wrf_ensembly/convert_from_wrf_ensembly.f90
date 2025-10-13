@@ -63,10 +63,16 @@ program convert_universal_csv
     integer :: second
     real(r8) :: obs_value
     real(r8) :: obs_error
-    character(len=32) :: obs_meta
+    character(len=200) :: obs_meta
   end type csv_line
   ! When parsing the CSV file
   integer, parameter :: max_line_length = 1024
+
+  ! Describes a key-value pair in obs metadata
+  type :: metadata_pair
+    character(len=50) :: key
+    character(len=100) :: value
+  end type metadata_pair
 
   !! Local variables
   ! CSV parsing
@@ -95,6 +101,10 @@ program convert_universal_csv
 
   ! For initialising the obs_sequence on the first observation
   logical :: first_obs
+
+  ! Observation key for obs_types that need metadata
+  ! We use -1 as a sentinel value for "no key", for those that don't need them.
+  integer :: obs_key = -1
 
   ! The obs_sequence object from DART
   type(obs_sequence_type) :: obs_seq
@@ -166,12 +176,15 @@ program convert_universal_csv
 
     call map_observation_type(trim(r%obs_type), obs_type_id, vert_loc_kind)
 
+    ! Some observations need metadata, now it's the time to handle this
+    call handle_obs_metadata(obs_type_id, trim(r%obs_meta), obs_key)
+
     ! Set the time
     time_obs = set_date(r%year, r%month, r%day, r%hour, r%minute, r%second)
     call get_time(time_obs, osec, oday)
 
     ! Set the observation value and error
-    call create_3d_obs(r%latitude, r%longitude, r%vert, vert_loc_kind, r%obs_value, obs_type_id, r%obs_error, oday, osec, qc, obs)
+    call create_3d_obs(r%latitude, r%longitude, r%vert, vert_loc_kind, r%obs_value, obs_type_id, r%obs_error, oday, osec, qc, obs, obs_key)
     call add_obs_to_seq(obs_seq, obs, time_obs, prev_obs, prev_time, first_obs)
     first_obs = .false.
   end do obsloop
@@ -492,6 +505,9 @@ contains
      case ('EC_ATL_EXT355')
       dart_obs_type = LIDAR_EXTINCTION
       dart_vert_type = VERTISHEIGHT
+     case ('HLOS_WIND')
+      dart_obs_type = AEOLUS_L2B_HLOS
+      dart_vert_type = VERTISHEIGHT
      case default
       dart_obs_type = -1 ! Error value
       dart_vert_type = VERTISUNDEF
@@ -499,6 +515,109 @@ contains
       stop
     end select
   end subroutine map_observation_type
+
+  ! For obs_types that require metadata (such as AEOLUS HLOS winds), this
+  ! subroutine handles parsing the metadata string and using the appropriate
+  ! "set metadata" routine. The format of the metadata string is vertical bar-separated
+  ! key-value pairs, e.g. "key1=value1|key2=value2".
+  ! If the obs_type does not require metadata, this subroutine does nothing.
+  ! The obs_key is returned as -1 if no metadata was set, or the actual
+  ! observation key if metadata was set.
+  subroutine handle_obs_metadata(obs_type_id, obs_meta_str, obs_key)
+    use obs_kind_mod, only : AEOLUS_L2B_HLOS
+    use obs_def_aeolus_hlos_mod, only: set_aeolus_metadata
+    implicit none
+
+    integer, intent(in) :: obs_type_id
+    character(len=*), intent(in) :: obs_meta_str
+    integer, intent(out) :: obs_key
+
+    ! Max 10 metadata pairs
+    type(metadata_pair) :: meta_pairs(10)
+    integer :: num_meta_pairs
+
+    ! Storage for the various fields we are searching, might get messy when
+    ! we implement more metadata-requiring obs_types
+    character(len=100) :: azimuth_str, windresultid_str
+    logical :: azimuth_found, windresultid_found
+    real(r8) :: azimuth
+    integer :: windresultid
+
+    call parse_metadata_string(trim(obs_meta_str), meta_pairs, num_meta_pairs)
+
+    if (obs_type_id == AEOLUS_L2B_HLOS) then
+      ! Search for azimuth and wind_result_id in metadata
+      call get_metadata_value(meta_pairs, num_meta_pairs, 'azimuth', azimuth_str, azimuth_found)
+      call get_metadata_value(meta_pairs, num_meta_pairs, 'wind_result_id', windresultid_str, windresultid_found)
+
+      if (.not. azimuth_found) then
+        write(*,*) 'Error: Missing required metadata "azimuth" for AEOLUS_L2B_HLOS observation'
+        stop
+      endif
+      if (.not. windresultid_found) then
+        write(*,*) 'Error: Missing required metadata "wind_result_id" for AEOLUS_L2B_HLOS observation'
+        stop
+      endif
+
+      ! Remember to convert the azimuth to real and wind_result_id to integer
+      read(azimuth_str, *) azimuth
+      read(windresultid_str, *) windresultid
+      print*, 'Setting AEOLUS metadata: wind_result_id=', windresultid, ' azimuth=', azimuth
+      call set_aeolus_metadata(obs_key, windresultid, azimuth)
+
+      return
+    end if
+
+    ! If we reach here, no metadata was set
+    obs_key = -1
+  end subroutine handle_obs_metadata
+
+  subroutine parse_metadata_string(meta_str, metadata, num_metadata)
+    character(len=*), intent(in) :: meta_str
+    type(metadata_pair), intent(out) :: metadata(:)
+    integer, intent(out) :: num_metadata
+
+    character(len=200) :: work_str
+    integer :: pos, next_pos, eq_pos
+
+    num_metadata = 0
+    work_str = trim(meta_str) // '|'  ! Append vertical bar for easier parsing
+    pos = 1
+
+    do while (pos < len_trim(work_str) .and. num_metadata < size(metadata))
+      next_pos = index(work_str(pos:), '|')
+      if (next_pos == 0) exit
+      next_pos = pos + next_pos - 1
+
+      eq_pos = index(work_str(pos:next_pos-1), '=')
+      if (eq_pos > 0) then
+        num_metadata = num_metadata + 1
+        metadata(num_metadata)%key = adjustl(trim(work_str(pos:pos+eq_pos-2)))
+        metadata(num_metadata)%value = adjustl(trim(work_str(pos+eq_pos:next_pos-1)))
+      endif
+
+      pos = next_pos + 1
+    enddo
+  end subroutine
+
+! Helper subroutine to get a value by key
+  subroutine get_metadata_value(metadata, num_metadata, key, value, found)
+    type(metadata_pair), intent(in) :: metadata(:)
+    integer, intent(in) :: num_metadata
+    character(len=*), intent(in) :: key
+    character(len=*), intent(out) :: value
+    logical, intent(out) :: found
+    integer :: i
+
+    found = .false.
+    do i = 1, num_metadata
+      if (trim(metadata(i)%key) == trim(key)) then
+        value = trim(metadata(i)%value)
+        found = .true.
+        return
+      endif
+    enddo
+  end subroutine
 end program convert_universal_csv
 
 ! ! <next few lines under version control, do not edit>
