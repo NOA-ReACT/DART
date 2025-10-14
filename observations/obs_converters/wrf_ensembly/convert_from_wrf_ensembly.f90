@@ -505,6 +505,9 @@ contains
      case ('EC_ATL_EXT355')
       dart_obs_type = LIDAR_EXTINCTION
       dart_vert_type = VERTISHEIGHT
+     case ('LIDAR_EXTINCTION_355NM')
+      dart_obs_type = LIDAR_EXTINCTION
+      dart_vert_type = VERTISHEIGHT
      case ('HLOS_WIND')
       dart_obs_type = AEOLUS_L2B_HLOS
       dart_vert_type = VERTISHEIGHT
