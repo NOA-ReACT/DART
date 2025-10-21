@@ -502,11 +502,14 @@ contains
      case ('AIRSENSE_AOD')
       dart_obs_type = AIRSENSE_AOD
       dart_vert_type = VERTISUNDEF
-     case ('EC_ATL_EXT355')
-      dart_obs_type = LIDAR_EXTINCTION
+     case ('LIDAR_EXTINCTION_355nm')
+      dart_obs_type = LIDAR_EXTINCTION_355nm
       dart_vert_type = VERTISHEIGHT
-     case ('LIDAR_EXTINCTION_355NM')
-      dart_obs_type = LIDAR_EXTINCTION
+     case ('LIDAR_EXTINCTION_532nm')
+      dart_obs_type = LIDAR_EXTINCTION_532nm
+      dart_vert_type = VERTISHEIGHT
+     case ('LIDAR_EXTINCTION_1064nm')
+      dart_obs_type = LIDAR_EXTINCTION_1064nm
       dart_vert_type = VERTISHEIGHT
      case ('HLOS_WIND')
       dart_obs_type = AEOLUS_L2B_HLOS
