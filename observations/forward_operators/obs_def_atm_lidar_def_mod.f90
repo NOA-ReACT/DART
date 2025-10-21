@@ -4,7 +4,9 @@
 !
 
 ! BEGIN DART PREPROCESS TYPE DEFINITIONS
-! LIDAR_EXTINCTION,  QTY_ATM_LIDAR_EXTINCTION
+! LIDAR_EXTINCTION_355nm,  QTY_ATM_LIDAR_EXTINCTION
+! LIDAR_EXTINCTION_532nm,  QTY_ATM_LIDAR_EXTINCTION
+! LIDAR_EXTINCTION_1064nm, QTY_ATM_LIDAR_EXTINCTION
 ! END DART PREPROCESS TYPE DEFINITIONS
 
 ! BEGIN DART PREPROCESS USE OF SPECIAL OBS_DEF MODULE
@@ -13,24 +15,40 @@
 
 
 ! BEGIN DART PREPROCESS GET_EXPECTED_OBS_FROM_DEF
-!      case(LIDAR_EXTINCTION)
-!         call get_extinction(state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(LIDAR_EXTINCTION_355nm)
+!         call get_extinction(355, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(LIDAR_EXTINCTION_532nm)
+!         call get_extinction(532, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(LIDAR_EXTINCTION_1064nm)
+!         call get_extinction(1064, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
 ! END DART PREPROCESS GET_EXPECTED_OBS_FROM_DEF
 
 ! BEGIN DART PREPROCESS READ_OBS_DEF
-!   case(LIDAR_EXTINCTION)
+!   case(LIDAR_EXTINCTION_355nm)
+!      continue
+!   case(LIDAR_EXTINCTION_532nm)
+!      continue
+!   case(LIDAR_EXTINCTION_1064nm)
 !      continue
 ! END DART PREPROCESS READ_OBS_DEF
 
 
 ! BEGIN DART PREPROCESS WRITE_OBS_DEF
-!   case(LIDAR_EXTINCTION)
+!   case(LIDAR_EXTINCTION_355nm)
+!      continue
+!   case(LIDAR_EXTINCTION_532nm)
+!      continue
+!   case(LIDAR_EXTINCTION_1064nm)
 !      continue
 ! END DART PREPROCESS WRITE_OBS_DEF
 
 
 ! BEGIN DART PREPROCESS INTERACTIVE_OBS_DEF
-!   case(LIDAR_EXTINCTION)
+!   case(LIDAR_EXTINCTION_355nm)
+!      continue
+!   case(LIDAR_EXTINCTION_532nm)
+!      continue
+!   case(LIDAR_EXTINCTION_1064nm)
 !      continue
 ! END DART PREPROCESS INTERACTIVE_OBS_DEF
 
@@ -181,7 +199,8 @@ contains
   end subroutine get_optical_props
 
   ! Computes the extinction from the dust mixing ratios
-  subroutine get_extinction(state_handle, ens_size, location, key, extinction, istatus)
+  subroutine get_extinction(wavelength, state_handle, ens_size, location, key, extinction, istatus)
+    integer, intent(in) :: wavelength
     type(ensemble_type), intent(in) :: state_handle
     integer, intent(in) :: ens_size
     type(location_type), intent(in) :: location
@@ -223,7 +242,7 @@ contains
 
     ! For each size bin, get mixing ratio, compute concentration and then extinction
     do obs_kind = 1, size(obs_kinds)
-      call get_optical_props(355, obs_kinds(obs_kind), props)
+      call get_optical_props(wavelength, obs_kinds(obs_kind), props)
 
       call interpolate(state_handle, ens_size, location, obs_kinds(obs_kind), &
         concentrations(:, obs_kind), this_istatus)
