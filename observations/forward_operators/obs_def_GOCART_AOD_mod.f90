@@ -66,7 +66,6 @@ module obs_def_GOCART_AOD_mod
    integer :: i, obs_kind
 
    ! Represents a row in the optical properties CSV file
-   ! Represents a row in the optical properties CSV file
    type :: optical_properties_csv
       integer :: wavelength ! Wavelength of the laser [nm]
       character(len=6) :: species ! Species name
@@ -345,11 +344,14 @@ contains
 
       ! Write a warning if max_levels is reached
       if (levels_found == max_levels) then
-         write(string1, *) 'Reached max_levels without finding an error', istatus
+         write(string1, *) 'Reached max_levels without finding an error'
       end if
 
       if (has_error) then
-         write(string1, *) 'Error in vertical level detection', istatus
+         print*, 'Error encountered during level detection'
+         print*, 'Levels found: ', levels_found
+         print*, 'istatus: ', istatus
+         write(string1, *) 'Error in vertical level detection'
       end if
    end subroutine determine_model_levels
 
