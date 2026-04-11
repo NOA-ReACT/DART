@@ -24,7 +24,7 @@
 
 ! BEGIN DART PREPROCESS READ_OBS_DEF
 !   case(AEOLUS_L2B_HLOS)
-!      call read_aeolus_metadata(obs_def%key, key, ifile, fform)
+!      call read_aeolus_metadata(obs_def%key, ifile, fform)
 ! END DART PREPROCESS READ_OBS_DEF
 
 
@@ -104,9 +104,8 @@ contains
       module_initialized = .true.
    end subroutine initialize_module
 
-   subroutine set_aeolus_metadata(key, obs_id, azimuth_a)
+   subroutine set_aeolus_metadata(key, azimuth_a)
       integer, intent(out) :: key
-      integer, intent(in) :: obs_id
       real(r8), intent(in) :: azimuth_a
 
       if (.not. module_initialized) call initialize_module
@@ -117,13 +116,11 @@ contains
       key = lastKey
 
       obs_metadata(key)%azimuth_a = azimuth_a
-      obs_metadata(key)%obs_id = obs_id
    end subroutine set_aeolus_metadata
 
    ! Reads metadata for a single observation and stores into `obs_metadata`
-   subroutine read_aeolus_metadata(key, obsId, ifile, fform)
+   subroutine read_aeolus_metadata(key, ifile, fform)
       integer, intent(out) :: key    ! index into local metadata
-      integer, intent(in) :: obsID
       integer, intent(in) :: ifile
       character(len=*), intent(in), optional :: fform
 
@@ -137,7 +134,6 @@ contains
       key = lastKey
 
       is_ascii = ascii_file_format(fform)
-      write(string2, *)'observation #', obsID
 
       if (is_ascii) then
          read(ifile, *, iostat=ierr) header
@@ -149,7 +145,6 @@ contains
          endif
 
          read(ifile, *, iostat=ierr) obs_metadata(key)%azimuth_a
-         read(ifile, *, iostat=ierr) obs_metadata(key)%obs_id
          call check_iostat(ierr, 'read_aeolus_metadata', 'azimuth_a', string2)
       else
          read(ifile, iostat=ierr) header
@@ -161,7 +156,6 @@ contains
          endif
 
          read(ifile, iostat=ierr) obs_metadata(key)%azimuth_a
-         read(ifile, *, iostat=ierr) obs_metadata(key)%obs_id
          call check_iostat(ierr, 'read_aeolus_metadata', 'azimuth_a', string2)
       endif
    end subroutine read_aeolus_metadata
@@ -182,11 +176,9 @@ contains
       if (is_ascii) then
          write(ifile, *) HLOSSTRING
          write(ifile, *) obs_metadata(key)%azimuth_a
-         write(ifile, *) obs_metadata(key)%obs_id
       else
          write(ifile) HLOSSTRING
          write(ifile) obs_metadata(key)%azimuth_a
-         write(ifile) obs_metadata(key)%obs_id
       endif
    end subroutine write_aeolus_metadata
 

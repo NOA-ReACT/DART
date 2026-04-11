@@ -544,32 +544,25 @@ contains
 
     ! Storage for the various fields we are searching, might get messy when
     ! we implement more metadata-requiring obs_types
-    character(len=100) :: azimuth_str, windresultid_str
-    logical :: azimuth_found, windresultid_found
+    character(len=100) :: azimuth_str
+    logical :: azimuth_found
     real(r8) :: azimuth
-    integer :: windresultid
 
     call parse_metadata_string(trim(obs_meta_str), meta_pairs, num_meta_pairs)
 
     if (obs_type_id == AEOLUS_L2B_HLOS) then
-      ! Search for azimuth and wind_result_id in metadata
+      ! Search for azimuth in metadata
       call get_metadata_value(meta_pairs, num_meta_pairs, 'azimuth', azimuth_str, azimuth_found)
-      call get_metadata_value(meta_pairs, num_meta_pairs, 'wind_result_id', windresultid_str, windresultid_found)
 
       if (.not. azimuth_found) then
         write(*,*) 'Error: Missing required metadata "azimuth" for AEOLUS_L2B_HLOS observation'
         stop
       endif
-      if (.not. windresultid_found) then
-        write(*,*) 'Error: Missing required metadata "wind_result_id" for AEOLUS_L2B_HLOS observation'
-        stop
-      endif
 
-      ! Remember to convert the azimuth to real and wind_result_id to integer
+      ! Remember to convert the azimuth to real to integer
       read(azimuth_str, *) azimuth
-      read(windresultid_str, *) windresultid
-      print*, 'Setting AEOLUS metadata: wind_result_id=', windresultid, ' azimuth=', azimuth
-      call set_aeolus_metadata(obs_key, windresultid, azimuth)
+      print*, 'Setting AEOLUS metadata: azimuth=', azimuth
+      call set_aeolus_metadata(obs_key, azimuth)
 
       return
     end if
