@@ -4,33 +4,40 @@
 !
 
 ! BEGIN DART PREPROCESS TYPE DEFINITIONS
-! AIRSENSE_AOD,  QTY_AOD
+! AIRSENSE_AOD,         QTY_AOD
+! AIRSENSE_AOD_FINE,    QTY_AOD
+! AIRSENSE_AOD_COARSE,  QTY_AOD
 ! END DART PREPROCESS TYPE DEFINITIONS
 
 ! BEGIN DART PREPROCESS USE OF SPECIAL OBS_DEF MODULE
-!   use obs_def_GOCART_AOD_mod, only : get_aod
+!   use obs_def_GOCART_AOD_mod, only : get_aod, &
+!      AOD_MODE_TOTAL, AOD_MODE_FINE, AOD_MODE_COARSE
 ! END DART PREPROCESS USE OF SPECIAL OBS_DEF MODULE
 
 
 ! BEGIN DART PREPROCESS GET_EXPECTED_OBS_FROM_DEF
 !      case(AIRSENSE_AOD)
-!         call get_aod(state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!         call get_aod(AOD_MODE_TOTAL, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(AIRSENSE_AOD_FINE)
+!         call get_aod(AOD_MODE_FINE, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(AIRSENSE_AOD_COARSE)
+!         call get_aod(AOD_MODE_COARSE, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
 ! END DART PREPROCESS GET_EXPECTED_OBS_FROM_DEF
 
 ! BEGIN DART PREPROCESS READ_OBS_DEF
-!   case(AIRSENSE_AOD)
+!   case(AIRSENSE_AOD, AIRSENSE_AOD_FINE, AIRSENSE_AOD_COARSE)
 !      continue
 ! END DART PREPROCESS READ_OBS_DEF
 
 
 ! BEGIN DART PREPROCESS WRITE_OBS_DEF
-!   case(AIRSENSE_AOD)
+!   case(AIRSENSE_AOD, AIRSENSE_AOD_FINE, AIRSENSE_AOD_COARSE)
 !      continue
 ! END DART PREPROCESS WRITE_OBS_DEF
 
 
 ! BEGIN DART PREPROCESS INTERACTIVE_OBS_DEF
-!   case(AIRSENSE_AOD)
+!   case(AIRSENSE_AOD, AIRSENSE_AOD_FINE, AIRSENSE_AOD_COARSE)
 !      continue
 ! END DART PREPROCESS INTERACTIVE_OBS_DEF
 
@@ -52,7 +59,15 @@ module obs_def_GOCART_AOD_mod
    use obs_def_utilities_mod, only : track_status
    use ensemble_manager_mod,  only : ensemble_type
 
-   public :: get_aod
+   public :: get_aod, AOD_MODE_TOTAL, AOD_MODE_FINE, AOD_MODE_COARSE
+
+   ! AOD modes: which aerosol size bins to integrate for the AOD
+   !   TOTAL  - all dust and sea salt bins
+   !   FINE   - DUST_1 and SEAS_1, SEAS_2
+   !   COARSE - DUST_2..DUST_5 and SEAS_3, SEAS_4
+   integer, parameter :: AOD_MODE_TOTAL  = 0
+   integer, parameter :: AOD_MODE_FINE   = 1
+   integer, parameter :: AOD_MODE_COARSE = 2
 
 ! version controlled file description for error handling, do not edit
    character(len=256), parameter :: source   = "$URL$"
@@ -177,7 +192,9 @@ contains
    end subroutine get_optical_props
 
    ! Forward model for Aerosol Optical Depth (AOD)
-   subroutine get_aod(state_handle, ens_size, location, key, aod, istatus)
+   ! `aod_mode` selects which aerosol size bins contribute (see AOD_MODE_* parameters)
+   subroutine get_aod(aod_mode, state_handle, ens_size, location, key, aod, istatus)
+      integer, intent(in) :: aod_mode
       type(ensemble_type), intent(in) :: state_handle
       integer, intent(in) :: ens_size
       type(location_type), intent(in) :: location
@@ -200,9 +217,8 @@ contains
       logical :: return_now = .false.
       integer :: this_istatus(ens_size)
 
-      ! Which observation kinds to use for AOD
-      integer :: obs_kinds(9) = [QTY_GC_DUST_BIN1, QTY_GC_DUST_BIN2, QTY_GC_DUST_BIN3, QTY_GC_DUST_BIN4, QTY_GC_DUST_BIN5, &
-                                 QTY_GC_SEAS_BIN1, QTY_GC_SEAS_BIN2, QTY_GC_SEAS_BIN3, QTY_GC_SEAS_BIN4]
+      ! Which observation kinds to use for AOD (selected below based on aod_mode)
+      integer, allocatable :: obs_kinds(:)
 
       ! Storage for model variables
       real(r8), allocatable :: concentrations(:, :, :), extinctions(:, :, :) ! (ens_size, model_levels, size(obs_kinds))
@@ -212,6 +228,21 @@ contains
 
       ! Initialize the module
       call initialize_module()
+
+      ! Select which aerosol size bins contribute to the AOD
+      select case (aod_mode)
+      case (AOD_MODE_TOTAL)
+         obs_kinds = [QTY_GC_DUST_BIN1, QTY_GC_DUST_BIN2, QTY_GC_DUST_BIN3, QTY_GC_DUST_BIN4, QTY_GC_DUST_BIN5, &
+                      QTY_GC_SEAS_BIN1, QTY_GC_SEAS_BIN2, QTY_GC_SEAS_BIN3, QTY_GC_SEAS_BIN4]
+      case (AOD_MODE_FINE)
+         obs_kinds = [QTY_GC_DUST_BIN1, QTY_GC_SEAS_BIN1, QTY_GC_SEAS_BIN2]
+      case (AOD_MODE_COARSE)
+         obs_kinds = [QTY_GC_DUST_BIN2, QTY_GC_DUST_BIN3, QTY_GC_DUST_BIN4, QTY_GC_DUST_BIN5, &
+                      QTY_GC_SEAS_BIN3, QTY_GC_SEAS_BIN4]
+      case default
+         write(string1, *) 'Unknown aod_mode ', aod_mode
+         call error_handler(E_ERR, 'get_aod', string1, source, revision, revdate)
+      end select
 
       ! Determine how many levels the model has
       call determine_model_levels(location, state_handle, ens_size, 500, model_levels, istatus)

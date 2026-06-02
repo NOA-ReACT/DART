@@ -40,7 +40,7 @@ program convert_universal_csv
     static_init_obs_sequence, init_obs, write_obs_seq, &
     init_obs_sequence, get_num_obs, &
     set_copy_meta_data, set_qc_meta_data
-  use obs_kind_mod, only : AIRSENSE_AOD
+  use obs_kind_mod, only : AIRSENSE_AOD, AIRSENSE_AOD_FINE, AIRSENSE_AOD_COARSE
 
   implicit none
 
@@ -502,6 +502,12 @@ contains
      case ('AIRSENSE_AOD')
       dart_obs_type = AIRSENSE_AOD
       dart_vert_type = VERTISUNDEF
+    case ('AIRSENSE_AOD_FINE')
+       dart_obs_type = AIRSENSE_AOD_FINE
+       dart_vert_type = VERTISUNDEF
+    case ('AIRSENSE_AOD_COARSE')
+        dart_obs_type = AIRSENSE_AOD_COARSE
+        dart_vert_type = VERTISUNDEF
      case ('LIDAR_EXTINCTION_355nm')
       dart_obs_type = LIDAR_EXTINCTION_355nm
       dart_vert_type = VERTISHEIGHT
