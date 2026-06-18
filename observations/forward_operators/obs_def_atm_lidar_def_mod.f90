@@ -234,6 +234,9 @@ contains
     concentrations(:, :) = MISSING_R8
     extinctions(:, :) = MISSING_R8
     rho(:) = MISSING_R8
+    ! istatus is intent(out) and is first read inside track_status (`where istatus == 0`),
+    ! so it MUST be zeroed here I think.
+    istatus(:) = 0
 
     ! Grab airdensity from state
     call interpolate(state_handle, ens_size, location, QTY_DENSITY, rho, this_istatus)
