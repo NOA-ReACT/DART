@@ -22,6 +22,27 @@
 
    /
 
+# Optical properties of the GOCART dust and sea salt bins, shared by the AOD and the
+# atmospheric lidar forward operators. This namelist is optional and shown at its defaults.
+# `kappa` is the sea salt hygroscopicity (kappa-Koehler, Zieger et al. 2017) used to turn the
+# relative humidity into a particle growth factor, and `max_rh` clamps the relative humidity
+# because the growth factor diverges as it approaches 1. A table without a growth_factor[1]
+# column reproduces the old, humidity-independent behaviour and ignores both.
+&gocart_optics_nml
+   optical_properties_file = 'GOCART_AOD_optical_properties.csv'
+   kappa                   = 1.1
+   max_rh                  = 0.99
+   debug                   = .false.
+   /
+
+# The AOD forward operator. `wavelength` has to be one of the wavelengths of the optical
+# properties table. Optional, shown at its defaults.
+&obs_def_GOCART_AOD_nml
+   wavelength = 532
+   debug      = .false.
+   /
+
+
 
 # vert_normalization_X is amount of X equiv to 1 radian in horiz.
 # vert localization is 'cutoff' times the pressure/height/levels,

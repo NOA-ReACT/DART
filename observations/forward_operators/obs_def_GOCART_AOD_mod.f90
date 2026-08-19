@@ -44,155 +44,76 @@
 ! BEGIN DART PREPROCESS MODULE CODE
 module obs_def_GOCART_AOD_mod
 
-   use types_mod, only : r8, PI, metadatalength, MISSING_R8, DEG2RAD
-   use    utilities_mod, only : register_module, error_handler, E_ERR, E_WARN, E_MSG, &
-      logfileunit, get_unit, open_file, close_file, &
-      file_exist, ascii_file_format
-   use     location_mod, only : location_type, set_location, get_location, &
-      VERTISHEIGHT, VERTISLEVEL, VERTISUNDEF, set_location_missing
-   use     obs_kind_mod, only : QTY_AOD, QTY_DENSITY, QTY_GEOPOTENTIAL_HEIGHT, &
-      QTY_GC_DUST_BIN1, QTY_GC_DUST_BIN2, QTY_GC_DUST_BIN3, &
-      QTY_GC_DUST_BIN4, QTY_GC_DUST_BIN5, &
-      QTY_GC_SEAS_BIN1, QTY_GC_SEAS_BIN2, QTY_GC_SEAS_BIN3, &
-      QTY_GC_SEAS_BIN4
-   use  assim_model_mod, only : interpolate
+   use types_mod, only : r8, MISSING_R8
+   use utilities_mod, only : register_module, error_handler, E_ERR, E_MSG, &
+      find_namelist_in_file, check_namelist_read, NAMELIST_NOT_PRESENT, &
+      do_nml_file, do_nml_term, nmlfileunit
+   use location_mod, only : location_type, set_location, get_location, VERTISLEVEL
+   use obs_kind_mod, only : QTY_DENSITY, QTY_GEOPOTENTIAL_HEIGHT, QTY_GC_DUST_BIN1
+   use assim_model_mod, only : interpolate
    use obs_def_utilities_mod, only : track_status
-   use ensemble_manager_mod,  only : ensemble_type
+   use ensemble_manager_mod, only : ensemble_type
+   use gocart_optics_mod, only : gocart_optics_init, N_GOCART_BINS, GOCART_BIN_QTYS, &
+      bin_optics_type, get_bin_optics, bin_ext_eff, bin_fine_fraction, &
+      optics_are_hygroscopic, optics_have_fine_fraction, get_expected_growth_factor
+
+   implicit none
+   private
 
    public :: get_aod, AOD_MODE_TOTAL, AOD_MODE_FINE, AOD_MODE_COARSE
 
-   ! AOD modes: which aerosol size bins to integrate for the AOD
-   !   TOTAL  - all dust and sea salt bins
-   !   FINE   - DUST_1 and SEAS_1, SEAS_2
-   !   COARSE - DUST_2..DUST_5 and SEAS_3, SEAS_4
+   ! AOD modes: how much of each aerosol bin's extinction contributes to the AOD.
+   !   TOTAL  - all of it
+   !   FINE   - the share of it coming from particles below the ambient-size cutoff the optical
+   !            properties table was built with, i.e. the table's fine_fraction[1]
+   !   COARSE - the remainder
+   ! Every bin contributes to every mode: the fine fraction of a bin is generally neither 0 nor
+   ! 1, and for the hygroscopic species it follows the ambient growth of the particles.
    integer, parameter :: AOD_MODE_TOTAL  = 0
    integer, parameter :: AOD_MODE_FINE   = 1
    integer, parameter :: AOD_MODE_COARSE = 2
+
+   ! Give up looking for the model top after this many levels
+   integer, parameter :: MAX_MODEL_LEVELS = 500
 
 ! version controlled file description for error handling, do not edit
    character(len=256), parameter :: source   = "$URL$"
    character(len=32 ), parameter :: revision = "$Revision$"
    character(len=128), parameter :: revdate  = "$Date$"
 
-   character(len=256) :: string1, string2
+   character(len=512) :: string1
    logical, save      :: module_initialized = .false.
 
-   ! For loops
-   integer :: i, obs_kind
+   ! Namelist
+   integer :: wavelength = 532   ! [nm], has to be one of the wavelengths of the optics table
+   logical :: debug      = .false.
 
-   ! Represents a row in the optical properties CSV file
-   type :: optical_properties_csv
-      integer :: wavelength ! Wavelength of the laser [nm]
-      character(len=6) :: species ! Species name
-      real(r8) :: ext_eff ! Extinction efficiency [meter ** 2 / kilogram]
-   end type optical_properties_csv
-
-   ! Represents the optical properties of an aerosol bin
-   type, extends(optical_properties_csv) :: optical_properties
-      integer :: qty ! DART quantity type
-   end type optical_properties
-
-   type(optical_properties), allocatable, dimension(:) :: optical_props
-
-   logical :: debug = .TRUE.
+   namelist /obs_def_GOCART_AOD_nml/ wavelength, debug
 
 contains
 
-   ! Read the optical properties from a CSV file
-   subroutine initialize_module
-      integer :: f, fstat ! File handle for optical properties
-      type(optical_properties_csv) :: line
-      type(optical_properties) :: props
+   ! Reads the namelist and the optical properties table
+   subroutine initialize_module()
+      integer :: iunit, io
 
       if (module_initialized) return
+      module_initialized = .true.
+
       call register_module(source, revision, revdate)
 
-      open(action='read', file='GOCART_AOD_optical_properties.csv', newunit=f, iostat=fstat)
-      if (fstat /= 0) then
-         write(string1, *) 'Could not open optical properties file GOCART_AOD_optical_properties.csv'
-         call error_handler(E_ERR, 'initialize_module', string1, source, revision, revdate)
+      call find_namelist_in_file('input.nml', 'obs_def_GOCART_AOD_nml', iunit, optional_nml = .true.)
+      if (iunit /= NAMELIST_NOT_PRESENT) then
+         read(iunit, nml = obs_def_GOCART_AOD_nml, iostat = io)
+         call check_namelist_read(iunit, io, 'obs_def_GOCART_AOD_nml')
       endif
+      if (do_nml_file()) write(nmlfileunit, nml = obs_def_GOCART_AOD_nml)
+      if (do_nml_term()) write(     *     , nml = obs_def_GOCART_AOD_nml)
 
-      ! Skip the first line, should be the header
-      read(f, *)
-
-      ! Read each line into an optical_properties object
-      allocate(optical_props(0))
-      do
-         read(f, *, iostat=fstat) line
-         if (fstat /= 0) exit
-
-         ! Copy to props
-         props%wavelength = line%wavelength
-         props%species = line%species
-         props%ext_eff = line%ext_eff
-
-         ! Identify the quantity type
-         if (line%species == 'DUST_1') then
-            props%qty = QTY_GC_DUST_BIN1
-         else if (line%species == 'DUST_2') then
-            props%qty = QTY_GC_DUST_BIN2
-         else if (line%species == 'DUST_3') then
-            props%qty = QTY_GC_DUST_BIN3
-         else if (line%species == 'DUST_4') then
-            props%qty = QTY_GC_DUST_BIN4
-         else if (line%species == 'DUST_5') then
-            props%qty = QTY_GC_DUST_BIN5
-         else if (line%species == 'SEAS_1') then
-            props%qty = QTY_GC_SEAS_BIN1
-         else if (line%species == 'SEAS_2') then
-            props%qty = QTY_GC_SEAS_BIN2
-         else if (line%species == 'SEAS_3') then
-            props%qty = QTY_GC_SEAS_BIN3
-         else if (line%species == 'SEAS_4') then
-            props%qty = QTY_GC_SEAS_BIN4
-         else
-            write(*, *) 'Unknown species ignored: ', line%species
-            cycle
-         endif
-
-         optical_props = [optical_props, props]
-      end do
-
-      print*, 'Read ', size(optical_props), ' optical properties'
-      if (size(optical_props) == 0) then
-         write(string1, *) 'No optical properties read from file'
-         call error_handler(E_ERR, 'initialize_module', string1, source, revision, revdate)
-      endif
-
-      ! Print out the optical properties for debugging
-      if (debug) then
-         do i = 1, size(optical_props)
-            write(*, *) 'Wavelength: ', optical_props(i)%wavelength
-            write(*, *) 'Species: ', optical_props(i)%species
-            write(*, *) 'DART quantity: ', optical_props(i)%qty
-            write(*, *) 'Ext_eff: ', optical_props(i)%ext_eff
-         end do
-      endif
-
-      close(f)
-      module_initialized = .true.
+      call gocart_optics_init()
    end subroutine initialize_module
 
-   ! Returns the optical properties for the given wavelength and DART quantity
-   subroutine get_optical_props(wavelength, qty, out)
-      integer, intent(in) :: wavelength
-      integer, intent(in) :: qty
-      type(optical_properties), intent(out) :: out
-
-      do i = 1, size(optical_props)
-         if (optical_props(i)%wavelength == wavelength .and. optical_props(i)%qty == qty) then
-            out = optical_props(i)
-            return
-         endif
-      end do
-
-      write(string1, *) 'Could not find optical properties for wavelength ', wavelength, ' and size bin ', qty
-      call error_handler(E_ERR, 'get_optical_props', string1, source, revision, revdate)
-   end subroutine get_optical_props
-
    ! Forward model for Aerosol Optical Depth (AOD)
-   ! `aod_mode` selects which aerosol size bins contribute (see AOD_MODE_* parameters)
+   ! `aod_mode` selects how much of each bin contributes (see the AOD_MODE_* parameters)
    subroutine get_aod(aod_mode, state_handle, ens_size, location, key, aod, istatus)
       integer, intent(in) :: aod_mode
       type(ensemble_type), intent(in) :: state_handle
@@ -202,135 +123,122 @@ contains
       real(r8), intent(inout) :: aod(ens_size)
       integer, intent(out) :: istatus(ens_size)
 
-      ! Optical properties for the current dust bin
-      type(optical_properties) :: props
-
-      ! For storing the `interpolator` output
-      real(r8) :: interp_val(ens_size)
-
-      ! For vertical level summing
-      integer :: model_levels, current_level
+      ! Optical properties of the current aerosol bin
+      type(bin_optics_type) :: props
       type(location_type) :: vert_location
-      real(r8), allocatable :: level_heights(:, :) ! (ens_size, model_levels)
 
-      ! Error tracker
-      logical :: return_now = .false.
+      integer :: model_levels, current_level, bin
+      logical :: return_now
       integer :: this_istatus(ens_size)
 
-      ! Which observation kinds to use for AOD (selected below based on aod_mode)
-      integer, allocatable :: obs_kinds(:)
+      ! Storage for model variables, all (ens_size, model_levels)
+      real(r8), allocatable :: level_heights(:, :), rho(:, :), growth_factor(:, :), &
+                               extinctions(:, :)
 
-      ! Storage for model variables
-      real(r8), allocatable :: concentrations(:, :, :), extinctions(:, :, :) ! (ens_size, model_levels, size(obs_kinds))
-      real(r8), allocatable :: rho(:, :) ! (ens_size, model_levels)
-      real(r8) :: current_level_height(ens_size)
-      real(r8) :: current_level_extinction(ens_size)
+      real(r8), dimension(ens_size) :: concentration, ext_eff, ext, fine_fraction, &
+                                       layer_thickness, layer_extinction
 
-      ! Initialize the module
       call initialize_module()
 
-      ! Select which aerosol size bins contribute to the AOD
       select case (aod_mode)
       case (AOD_MODE_TOTAL)
-         obs_kinds = [QTY_GC_DUST_BIN1, QTY_GC_DUST_BIN2, QTY_GC_DUST_BIN3, QTY_GC_DUST_BIN4, QTY_GC_DUST_BIN5, &
-                      QTY_GC_SEAS_BIN1, QTY_GC_SEAS_BIN2, QTY_GC_SEAS_BIN3, QTY_GC_SEAS_BIN4]
-      case (AOD_MODE_FINE)
-         obs_kinds = [QTY_GC_DUST_BIN1, QTY_GC_SEAS_BIN1, QTY_GC_SEAS_BIN2]
-      case (AOD_MODE_COARSE)
-         obs_kinds = [QTY_GC_DUST_BIN2, QTY_GC_DUST_BIN3, QTY_GC_DUST_BIN4, QTY_GC_DUST_BIN5, &
-                      QTY_GC_SEAS_BIN3, QTY_GC_SEAS_BIN4]
+         continue
+      case (AOD_MODE_FINE, AOD_MODE_COARSE)
+         if (.not. optics_have_fine_fraction()) then
+            write(string1, *) 'The fine and coarse mode AODs need the fine_fraction[1] column ' // &
+                              'of the optical properties table, which this one does not have'
+            call error_handler(E_ERR, 'get_aod', string1, source, revision, revdate)
+         endif
       case default
          write(string1, *) 'Unknown aod_mode ', aod_mode
          call error_handler(E_ERR, 'get_aod', string1, source, revision, revdate)
       end select
 
-      ! Determine how many levels the model has
-      call determine_model_levels(location, state_handle, ens_size, 500, model_levels, istatus)
-      ! print*, 'Model has ', model_levels, ' levels'
+      ! Determine how many levels the model has. This leaves the istatus of the interpolation
+      ! that ran off the top of the model behind, so zero it before track_status(), which reads
+      ! istatus before it writes it.
+      call determine_model_levels(location, state_handle, ens_size, MAX_MODEL_LEVELS, &
+                                  model_levels, istatus)
+      istatus(:) = 0
 
-      allocate(level_heights(ens_size, model_levels))
-      allocate(rho(ens_size, model_levels))
-      allocate(concentrations(ens_size, model_levels, size(obs_kinds)))
-      allocate(extinctions(ens_size, model_levels, size(obs_kinds)))
+      allocate(level_heights(ens_size, model_levels), rho(ens_size, model_levels), &
+               growth_factor(ens_size, model_levels), extinctions(ens_size, model_levels))
       level_heights(:, :) = MISSING_R8
       rho(:, :) = MISSING_R8
-      concentrations(:, :, :) = MISSING_R8
-      extinctions(:, :, :) = MISSING_R8
+      growth_factor(:, :) = 1.0_r8
+      extinctions(:, :) = 0.0_r8
 
       ! Get the geopotential height of each model level
-      call get_model_heights(state_handle, ens_size, location, model_levels, level_heights, istatus)
-      ! if (debug) then
-      !    ! Print geopotential heights of first member
-      !    ! write(*, *) 'Geopotential heights of first member:'
-      !    do current_level = 1, model_levels
-      !       write(*, *) level_heights(1, current_level)
-      !    end do
-      ! end if
+      call get_model_heights(state_handle, ens_size, location, model_levels, level_heights, &
+                             this_istatus)
 
       ! Get model density for all levels
-      ! if (debug) write(*, *) 'Interpolating density'
       do current_level = 1, model_levels
          call make_location_vertislevel(location, vert_location, real(current_level - 1, r8))
-         call interpolate(state_handle, ens_size, vert_location, QTY_DENSITY, rho(:, current_level), istatus)
-         call track_status(ens_size, istatus, aod, istatus, return_now)
+         call interpolate(state_handle, ens_size, vert_location, QTY_DENSITY, &
+                          rho(:, current_level), this_istatus)
+         call track_status(ens_size, this_istatus, aod, istatus, return_now)
          if (return_now) return
       end do
 
-      ! For each obs_type, get the concentrations and compute the extinctions
-      ! if (debug) print *, 'Computing extinctions'
-      do obs_kind = 1, size(obs_kinds)
-         ! if (debug) print *, 'Computing for obs_kind ', obs_kinds(obs_kind)
+      ! Get the hygroscopic growth of the particles, but only if the optical properties are
+      ! resolved over it. A table without a growth factor axis keeps the old, dry behaviour.
+      if (optics_are_hygroscopic()) then
+         do current_level = 1, model_levels
+            call make_location_vertislevel(location, vert_location, real(current_level - 1, r8))
+            call get_expected_growth_factor(state_handle, ens_size, vert_location, &
+                                            growth_factor(:, current_level), this_istatus)
+            call track_status(ens_size, this_istatus, aod, istatus, return_now)
+            if (return_now) return
+         end do
+      endif
 
-         call get_optical_props(532, obs_kinds(obs_kind), props)
+      ! Build the extinction profile, one aerosol bin at a time
+      do bin = 1, N_GOCART_BINS
+         call get_bin_optics(wavelength, GOCART_BIN_QTYS(bin), props)
 
          do current_level = 1, model_levels
-            ! Get the mixing ratios for this obs_type
+            ! Get the mixing ratio of this bin
             call make_location_vertislevel(location, vert_location, real(current_level - 1, r8))
-            call interpolate(state_handle, ens_size, vert_location, obs_kinds(obs_kind), concentrations(:, current_level, obs_kind), this_istatus)
-            call track_status(ens_size, this_istatus, concentrations(:, current_level, obs_kind), istatus, return_now)
-
+            call interpolate(state_handle, ens_size, vert_location, GOCART_BIN_QTYS(bin), &
+                             concentration, this_istatus)
+            call track_status(ens_size, this_istatus, aod, istatus, return_now)
             if (return_now) return
 
-            ! Multiply with density to get concentrations
-            concentrations(:, current_level, obs_kind) = concentrations(:, current_level, obs_kind) * rho(:, current_level) * 1e-9 ! Convert from ug/m^3 to kg/m^3
+            ! Multiply with density to get a concentration, ug/kg -> kg/m^3, which is what the
+            ! mass extinction efficiencies of the table expect
+            concentration = concentration * rho(:, current_level) * 1.0e-9_r8
 
-            ! Use optical properties to compute extinction
-            extinctions(:, current_level, obs_kind) = concentrations(:, current_level, obs_kind) * props%ext_eff
+            call bin_ext_eff(props, growth_factor(:, current_level), ext_eff)
+            ext = concentration * ext_eff ! m^2/kg * kg/m^3 -> 1/m
+
+            ! Attribute this bin's extinction to the requested size mode. The fine and the
+            ! coarse mode stay exactly additive by taking the coarse part as the remainder.
+            if (aod_mode /= AOD_MODE_TOTAL) then
+               call bin_fine_fraction(props, growth_factor(:, current_level), fine_fraction)
+               if (aod_mode == AOD_MODE_FINE) then
+                  ext = fine_fraction * ext
+               else
+                  ext = ext - fine_fraction * ext
+               endif
+            endif
+
+            extinctions(:, current_level) = extinctions(:, current_level) + ext
          end do
       end do
-
-      ! Print total extinction & concentration for each model level
-      ! do current_level = 1, model_levels
-      !    print*, 'Level', current_level, ", ", sum(concentrations(:, current_level, :), dim=2) / ens_size, "kg/m^3", ", ", sum(extinctions(:, current_level, :), dim=2) / ens_size, "1/m", "density ", sum(rho(:, current_level)) / ens_size
-      ! end do
-
-      ! print *, 'Total concentration for whole column', sum(sum(sum(concentrations(:, :, :), dim=2) / ens_size, dim=1), dim=1), "kg/m^3"
 
       ! To compute AOD, integrate the extinction over all levels
       aod = 0.0_r8
       do current_level = 1, model_levels - 1
-         current_level_height = (level_heights(:, current_level + 1) - level_heights(:, current_level))
-         current_level_extinction = (sum(extinctions(:, current_level + 1, :), dim=2) + sum(extinctions(:, current_level, :), dim=2)) / 2
-         aod = aod + (current_level_extinction * current_level_height)
-         ! print*, "Current level: ", current_level, " height: ", current_level_height, " total_extinction: ", current_level_extinction
+         layer_thickness  = level_heights(:, current_level + 1) - level_heights(:, current_level)
+         layer_extinction = (extinctions(:, current_level + 1) + &
+                             extinctions(:, current_level)) / 2.0_r8
+         aod = aod + layer_extinction * layer_thickness
       end do
+      where (istatus /= 0) aod = MISSING_R8
+
       if (debug) write(*, *) 'AOD: ', aod
    end subroutine get_aod
-
-   ! Sanity check for iostat, if it is not 0, call the error handler
-   subroutine check_iostat(istat, routine, varname, msgstring)
-
-      integer,          intent(in) :: istat
-      character(len=*), intent(in) :: routine
-      character(len=*), intent(in) :: varname
-      character(len=*), intent(in) :: msgstring
-
-      if ( istat /= 0 ) then
-         write(string1,*) 'istat should be 0 but is ', istat, ' for ' // varname
-         call error_handler(E_ERR, routine, string1, source, revision, revdate, text2=msgstring)
-      end if
-
-   end subroutine check_iostat
 
    ! Finds out how many vertical levels the model has
    ! This is done by calling interpolate() with VERTISLEVEL locations until it errors out.
@@ -410,7 +318,6 @@ contains
             call error_handler(E_ERR, 'get_model_heights', string1, source, revision, revdate)
          end if
 
-         ! print *, 'height for level ', current_level, ' is ', sum(interp_val) / ens_size
          level_heights(:, current_level) = interp_val
       end do
    end subroutine get_model_heights
