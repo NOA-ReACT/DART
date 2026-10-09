@@ -11,6 +11,7 @@ source "$DART"/build_templates/buildconvfunctions.sh
 
 CONVERTER=earthcare
 LOCATION=threed_sphere
+EXTRA="$DART/observations/forward_operators/gocart_optics_mod.f90"
 
 
 programs=(

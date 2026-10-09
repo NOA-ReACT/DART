@@ -12,7 +12,8 @@ source "$DART"/build_templates/buildconvfunctions.sh
 CONVERTER=aeolus
 LOCATION=threed_sphere
 LIBRARIES=../coda_fortran.o
-EXTRA=obs_errors.path_names
+EXTRA="obs_errors.path_names \
+       $DART/observations/forward_operators/gocart_optics_mod.f90"
 
 
 programs=(

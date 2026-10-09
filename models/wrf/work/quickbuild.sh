@@ -12,6 +12,7 @@ source "$DART"/build_templates/buildfunctions.sh
 MODEL=wrf
 LOCATION=threed_sphere
 EXCLUDE=experiments
+EXTRA="$DART/observations/forward_operators/gocart_optics_mod.f90"
 
 
 programs=(
