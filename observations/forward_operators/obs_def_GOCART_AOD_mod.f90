@@ -7,37 +7,62 @@
 ! GOCART_AOD,         QTY_AOD
 ! GOCART_AOD_FINE,    QTY_AOD
 ! GOCART_AOD_COARSE,  QTY_AOD
+! GOCART_DOD,         QTY_AOD
+! GOCART_DOD_FINE,    QTY_AOD
+! GOCART_DOD_COARSE,  QTY_AOD
+! GOCART_SSOD,        QTY_AOD
+! GOCART_SSOD_FINE,   QTY_AOD
+! GOCART_SSOD_COARSE, QTY_AOD
 ! END DART PREPROCESS TYPE DEFINITIONS
 
 ! BEGIN DART PREPROCESS USE OF SPECIAL OBS_DEF MODULE
 !   use obs_def_GOCART_AOD_mod, only : get_aod, &
-!      AOD_MODE_TOTAL, AOD_MODE_FINE, AOD_MODE_COARSE
+!      AOD_MODE_TOTAL, AOD_MODE_FINE, AOD_MODE_COARSE, &
+!      AOD_SPECIES_ALL, AOD_SPECIES_DUST, AOD_SPECIES_SEAS
 ! END DART PREPROCESS USE OF SPECIAL OBS_DEF MODULE
 
 
 ! BEGIN DART PREPROCESS GET_EXPECTED_OBS_FROM_DEF
 !      case(GOCART_AOD)
-!         call get_aod(AOD_MODE_TOTAL, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!         call get_aod(AOD_MODE_TOTAL, AOD_SPECIES_ALL, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
 !      case(GOCART_AOD_FINE)
-!         call get_aod(AOD_MODE_FINE, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!         call get_aod(AOD_MODE_FINE, AOD_SPECIES_ALL, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
 !      case(GOCART_AOD_COARSE)
-!         call get_aod(AOD_MODE_COARSE, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!         call get_aod(AOD_MODE_COARSE, AOD_SPECIES_ALL, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_DOD)
+!         call get_aod(AOD_MODE_TOTAL, AOD_SPECIES_DUST, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_DOD_FINE)
+!         call get_aod(AOD_MODE_FINE, AOD_SPECIES_DUST, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_DOD_COARSE)
+!         call get_aod(AOD_MODE_COARSE, AOD_SPECIES_DUST, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_SSOD)
+!         call get_aod(AOD_MODE_TOTAL, AOD_SPECIES_SEAS, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_SSOD_FINE)
+!         call get_aod(AOD_MODE_FINE, AOD_SPECIES_SEAS, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_SSOD_COARSE)
+!         call get_aod(AOD_MODE_COARSE, AOD_SPECIES_SEAS, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
 ! END DART PREPROCESS GET_EXPECTED_OBS_FROM_DEF
 
 ! BEGIN DART PREPROCESS READ_OBS_DEF
-!   case(GOCART_AOD, GOCART_AOD_FINE, GOCART_AOD_COARSE)
+!   case(GOCART_AOD,  GOCART_AOD_FINE,  GOCART_AOD_COARSE, &
+!        GOCART_DOD,  GOCART_DOD_FINE,  GOCART_DOD_COARSE, &
+!        GOCART_SSOD, GOCART_SSOD_FINE, GOCART_SSOD_COARSE)
 !      continue
 ! END DART PREPROCESS READ_OBS_DEF
 
 
 ! BEGIN DART PREPROCESS WRITE_OBS_DEF
-!   case(GOCART_AOD, GOCART_AOD_FINE, GOCART_AOD_COARSE)
+!   case(GOCART_AOD,  GOCART_AOD_FINE,  GOCART_AOD_COARSE, &
+!        GOCART_DOD,  GOCART_DOD_FINE,  GOCART_DOD_COARSE, &
+!        GOCART_SSOD, GOCART_SSOD_FINE, GOCART_SSOD_COARSE)
 !      continue
 ! END DART PREPROCESS WRITE_OBS_DEF
 
 
 ! BEGIN DART PREPROCESS INTERACTIVE_OBS_DEF
-!   case(GOCART_AOD, GOCART_AOD_FINE, GOCART_AOD_COARSE)
+!   case(GOCART_AOD,  GOCART_AOD_FINE,  GOCART_AOD_COARSE, &
+!        GOCART_DOD,  GOCART_DOD_FINE,  GOCART_DOD_COARSE, &
+!        GOCART_SSOD, GOCART_SSOD_FINE, GOCART_SSOD_COARSE)
 !      continue
 ! END DART PREPROCESS INTERACTIVE_OBS_DEF
 
@@ -49,7 +74,9 @@ module obs_def_GOCART_AOD_mod
       find_namelist_in_file, check_namelist_read, NAMELIST_NOT_PRESENT, &
       do_nml_file, do_nml_term, nmlfileunit
    use location_mod, only : location_type, set_location, get_location, VERTISLEVEL
-   use obs_kind_mod, only : QTY_DENSITY, QTY_GEOPOTENTIAL_HEIGHT, QTY_GC_DUST_BIN1
+   use obs_kind_mod, only : QTY_DENSITY, QTY_GEOPOTENTIAL_HEIGHT, &
+      QTY_GC_DUST_BIN1, QTY_GC_DUST_BIN2, QTY_GC_DUST_BIN3, QTY_GC_DUST_BIN4, QTY_GC_DUST_BIN5, &
+      QTY_GC_SEAS_BIN1, QTY_GC_SEAS_BIN2, QTY_GC_SEAS_BIN3, QTY_GC_SEAS_BIN4
    use assim_model_mod, only : interpolate
    use obs_def_utilities_mod, only : track_status
    use ensemble_manager_mod, only : ensemble_type
@@ -60,7 +87,8 @@ module obs_def_GOCART_AOD_mod
    implicit none
    private
 
-   public :: get_aod, AOD_MODE_TOTAL, AOD_MODE_FINE, AOD_MODE_COARSE
+   public :: get_aod, AOD_MODE_TOTAL, AOD_MODE_FINE, AOD_MODE_COARSE, &
+      AOD_SPECIES_ALL, AOD_SPECIES_DUST, AOD_SPECIES_SEAS
 
    ! AOD modes: how much of each aerosol bin's extinction contributes to the AOD.
    !   TOTAL  - all of it
@@ -72,6 +100,14 @@ module obs_def_GOCART_AOD_mod
    integer, parameter :: AOD_MODE_TOTAL  = 0
    integer, parameter :: AOD_MODE_FINE   = 1
    integer, parameter :: AOD_MODE_COARSE = 2
+
+   ! AOD species: which aerosol bins contribute to the AOD.
+   !   ALL  - every bin (AOD)
+   !   DUST - the dust bins only (dust optical depth, DOD)
+   !   SEAS - the sea salt bins only (sea salt optical depth, SSOD)
+   integer, parameter :: AOD_SPECIES_ALL  = 0
+   integer, parameter :: AOD_SPECIES_DUST = 1
+   integer, parameter :: AOD_SPECIES_SEAS = 2
 
    ! Give up looking for the model top after this many levels
    integer, parameter :: MAX_MODEL_LEVELS = 500
@@ -114,8 +150,10 @@ contains
 
    ! Forward model for Aerosol Optical Depth (AOD)
    ! `aod_mode` selects how much of each bin contributes (see the AOD_MODE_* parameters)
-   subroutine get_aod(aod_mode, state_handle, ens_size, location, key, aod, istatus)
+   ! `aod_species` selects which bins contribute (see the AOD_SPECIES_* parameters)
+   subroutine get_aod(aod_mode, aod_species, state_handle, ens_size, location, key, aod, istatus)
       integer, intent(in) :: aod_mode
+      integer, intent(in) :: aod_species
       type(ensemble_type), intent(in) :: state_handle
       integer, intent(in) :: ens_size
       type(location_type), intent(in) :: location
@@ -151,6 +189,14 @@ contains
          endif
       case default
          write(string1, *) 'Unknown aod_mode ', aod_mode
+         call error_handler(E_ERR, 'get_aod', string1, source, revision, revdate)
+      end select
+
+      select case (aod_species)
+      case (AOD_SPECIES_ALL, AOD_SPECIES_DUST, AOD_SPECIES_SEAS)
+         continue
+      case default
+         write(string1, *) 'Unknown aod_species ', aod_species
          call error_handler(E_ERR, 'get_aod', string1, source, revision, revdate)
       end select
 
@@ -195,6 +241,8 @@ contains
 
       ! Build the extinction profile, one aerosol bin at a time
       do bin = 1, N_GOCART_BINS
+         if (.not. bin_in_species(GOCART_BIN_QTYS(bin), aod_species)) cycle
+
          call get_bin_optics(wavelength, GOCART_BIN_QTYS(bin), props)
 
          do current_level = 1, model_levels
@@ -239,6 +287,31 @@ contains
 
       if (debug) write(*, *) 'AOD: ', aod
    end subroutine get_aod
+
+   ! Whether the aerosol bin of quantity `qty` belongs to `aod_species`
+   pure logical function bin_in_species(qty, aod_species)
+      integer, intent(in) :: qty
+      integer, intent(in) :: aod_species
+
+      select case (aod_species)
+      case (AOD_SPECIES_DUST)
+         select case (qty)
+         case (QTY_GC_DUST_BIN1, QTY_GC_DUST_BIN2, QTY_GC_DUST_BIN3, QTY_GC_DUST_BIN4, QTY_GC_DUST_BIN5)
+            bin_in_species = .true.
+         case default
+            bin_in_species = .false.
+         end select
+      case (AOD_SPECIES_SEAS)
+         select case (qty)
+         case (QTY_GC_SEAS_BIN1, QTY_GC_SEAS_BIN2, QTY_GC_SEAS_BIN3, QTY_GC_SEAS_BIN4)
+            bin_in_species = .true.
+         case default
+            bin_in_species = .false.
+         end select
+      case default
+         bin_in_species = .true.
+      end select
+   end function bin_in_species
 
    ! Finds out how many vertical levels the model has
    ! This is done by calling interpolate() with VERTISLEVEL locations until it errors out.

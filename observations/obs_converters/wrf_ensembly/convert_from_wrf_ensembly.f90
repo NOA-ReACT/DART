@@ -508,6 +508,24 @@ contains
     case ('GOCART_AOD_COARSE')
         dart_obs_type = GOCART_AOD_COARSE
         dart_vert_type = VERTISUNDEF
+    case ('GOCART_DOD')
+       dart_obs_type = GOCART_DOD
+       dart_vert_type = VERTISUNDEF
+    case ('GOCART_DOD_FINE')
+       dart_obs_type = GOCART_DOD_FINE
+       dart_vert_type = VERTISUNDEF
+    case ('GOCART_DOD_COARSE')
+       dart_obs_type = GOCART_DOD_COARSE
+       dart_vert_type = VERTISUNDEF
+    case ('GOCART_SSOD')
+       dart_obs_type = GOCART_SSOD
+       dart_vert_type = VERTISUNDEF
+    case ('GOCART_SSOD_FINE')
+       dart_obs_type = GOCART_SSOD_FINE
+       dart_vert_type = VERTISUNDEF
+    case ('GOCART_SSOD_COARSE')
+       dart_obs_type = GOCART_SSOD_COARSE
+       dart_vert_type = VERTISUNDEF
      case ('LIDAR_EXTINCTION_355nm')
       dart_obs_type = LIDAR_EXTINCTION_355nm
       dart_vert_type = VERTISHEIGHT
