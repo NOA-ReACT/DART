@@ -36,7 +36,7 @@ program ec_atl_ebd
     set_copy_meta_data, set_qc_meta_data, write_obs_seq, get_num_obs
   use location_mod, only : VERTISHEIGHT
   use obs_utilities_mod, only : create_3d_obs, add_obs_to_seq
-  use obs_kind_mod, only : LIDAR_EXTINCTION
+  use obs_kind_mod, only : LIDAR_EXTINCTION_355nm
   use netcdf_utilities_mod, only : nc_open_file_readonly, nc_close_file, &
     nc_get_dimension_size, nc_get_variable, nc_get_variable_info
   use netcdf
@@ -207,7 +207,7 @@ program ec_atl_ebd
 
       ! Create observation
       call create_3d_obs(lat(j), lon(j), height(i,j), VERTISHEIGHT, &
-        extinction(i,j), LIDAR_EXTINCTION, &
+        extinction(i,j), LIDAR_EXTINCTION_355nm, &
         extinction_error(i,j), days, seconds, qc, obs)
 
       ! Add to sequence
