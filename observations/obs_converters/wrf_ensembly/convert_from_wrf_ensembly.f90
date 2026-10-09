@@ -40,7 +40,6 @@ program convert_universal_csv
     static_init_obs_sequence, init_obs, write_obs_seq, &
     init_obs_sequence, get_num_obs, &
     set_copy_meta_data, set_qc_meta_data
-  use obs_kind_mod, only : GOCART_AOD, GOCART_AOD_FINE, GOCART_AOD_COARSE
 
   implicit none
 
@@ -497,35 +496,20 @@ contains
     character(len=*), intent(in) :: string_obs_type
     integer, intent(out) :: dart_obs_type, dart_vert_type
 
+    ! The column optical depths (GOCART_AOD_355nm, GOCART_DOD_FINE_532nm, ...) come in
+    ! one type per species, size mode and wavelength, so they are looked up by name
+    if (index(string_obs_type, 'GOCART_') == 1) then
+      dart_obs_type = get_index_for_type_of_obs(trim(string_obs_type))
+      dart_vert_type = VERTISUNDEF
+      if (dart_obs_type < 0) then
+        write(*,*) 'Unknown observation type: ', string_obs_type
+        stop
+      endif
+      return
+    endif
+
     ! Map the string to the corresponding DART obs_type
     select case (trim(string_obs_type))
-     case ('GOCART_AOD')
-      dart_obs_type = GOCART_AOD
-      dart_vert_type = VERTISUNDEF
-    case ('GOCART_AOD_FINE')
-       dart_obs_type = GOCART_AOD_FINE
-       dart_vert_type = VERTISUNDEF
-    case ('GOCART_AOD_COARSE')
-        dart_obs_type = GOCART_AOD_COARSE
-        dart_vert_type = VERTISUNDEF
-    case ('GOCART_DOD')
-       dart_obs_type = GOCART_DOD
-       dart_vert_type = VERTISUNDEF
-    case ('GOCART_DOD_FINE')
-       dart_obs_type = GOCART_DOD_FINE
-       dart_vert_type = VERTISUNDEF
-    case ('GOCART_DOD_COARSE')
-       dart_obs_type = GOCART_DOD_COARSE
-       dart_vert_type = VERTISUNDEF
-    case ('GOCART_SSOD')
-       dart_obs_type = GOCART_SSOD
-       dart_vert_type = VERTISUNDEF
-    case ('GOCART_SSOD_FINE')
-       dart_obs_type = GOCART_SSOD_FINE
-       dart_vert_type = VERTISUNDEF
-    case ('GOCART_SSOD_COARSE')
-       dart_obs_type = GOCART_SSOD_COARSE
-       dart_vert_type = VERTISUNDEF
      case ('LIDAR_EXTINCTION_355nm')
       dart_obs_type = LIDAR_EXTINCTION_355nm
       dart_vert_type = VERTISHEIGHT

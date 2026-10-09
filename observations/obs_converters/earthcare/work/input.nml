@@ -38,8 +38,7 @@
 # The AOD forward operator. `wavelength` has to be one of the wavelengths of the optical
 # properties table. Optional, shown at its defaults.
 &obs_def_GOCART_AOD_nml
-   wavelength = 532
-   debug      = .false.
+   debug = .false.
    /
 
 

@@ -4,15 +4,51 @@
 !
 
 ! BEGIN DART PREPROCESS TYPE DEFINITIONS
-! GOCART_AOD,         QTY_AOD
-! GOCART_AOD_FINE,    QTY_AOD
-! GOCART_AOD_COARSE,  QTY_AOD
-! GOCART_DOD,         QTY_AOD
-! GOCART_DOD_FINE,    QTY_AOD
-! GOCART_DOD_COARSE,  QTY_AOD
-! GOCART_SSOD,        QTY_AOD
-! GOCART_SSOD_FINE,   QTY_AOD
-! GOCART_SSOD_COARSE, QTY_AOD
+! GOCART_AOD_355nm,          QTY_AOD
+! GOCART_AOD_500nm,          QTY_AOD
+! GOCART_AOD_532nm,          QTY_AOD
+! GOCART_AOD_550nm,          QTY_AOD
+! GOCART_AOD_1064nm,         QTY_AOD
+! GOCART_AOD_FINE_355nm,     QTY_AOD
+! GOCART_AOD_FINE_500nm,     QTY_AOD
+! GOCART_AOD_FINE_532nm,     QTY_AOD
+! GOCART_AOD_FINE_550nm,     QTY_AOD
+! GOCART_AOD_FINE_1064nm,    QTY_AOD
+! GOCART_AOD_COARSE_355nm,   QTY_AOD
+! GOCART_AOD_COARSE_500nm,   QTY_AOD
+! GOCART_AOD_COARSE_532nm,   QTY_AOD
+! GOCART_AOD_COARSE_550nm,   QTY_AOD
+! GOCART_AOD_COARSE_1064nm,  QTY_AOD
+! GOCART_DOD_355nm,          QTY_AOD
+! GOCART_DOD_500nm,          QTY_AOD
+! GOCART_DOD_532nm,          QTY_AOD
+! GOCART_DOD_550nm,          QTY_AOD
+! GOCART_DOD_1064nm,         QTY_AOD
+! GOCART_DOD_FINE_355nm,     QTY_AOD
+! GOCART_DOD_FINE_500nm,     QTY_AOD
+! GOCART_DOD_FINE_532nm,     QTY_AOD
+! GOCART_DOD_FINE_550nm,     QTY_AOD
+! GOCART_DOD_FINE_1064nm,    QTY_AOD
+! GOCART_DOD_COARSE_355nm,   QTY_AOD
+! GOCART_DOD_COARSE_500nm,   QTY_AOD
+! GOCART_DOD_COARSE_532nm,   QTY_AOD
+! GOCART_DOD_COARSE_550nm,   QTY_AOD
+! GOCART_DOD_COARSE_1064nm,  QTY_AOD
+! GOCART_SSOD_355nm,         QTY_AOD
+! GOCART_SSOD_500nm,         QTY_AOD
+! GOCART_SSOD_532nm,         QTY_AOD
+! GOCART_SSOD_550nm,         QTY_AOD
+! GOCART_SSOD_1064nm,        QTY_AOD
+! GOCART_SSOD_FINE_355nm,    QTY_AOD
+! GOCART_SSOD_FINE_500nm,    QTY_AOD
+! GOCART_SSOD_FINE_532nm,    QTY_AOD
+! GOCART_SSOD_FINE_550nm,    QTY_AOD
+! GOCART_SSOD_FINE_1064nm,   QTY_AOD
+! GOCART_SSOD_COARSE_355nm,  QTY_AOD
+! GOCART_SSOD_COARSE_500nm,  QTY_AOD
+! GOCART_SSOD_COARSE_532nm,  QTY_AOD
+! GOCART_SSOD_COARSE_550nm,  QTY_AOD
+! GOCART_SSOD_COARSE_1064nm, QTY_AOD
 ! END DART PREPROCESS TYPE DEFINITIONS
 
 ! BEGIN DART PREPROCESS USE OF SPECIAL OBS_DEF MODULE
@@ -23,46 +59,199 @@
 
 
 ! BEGIN DART PREPROCESS GET_EXPECTED_OBS_FROM_DEF
-!      case(GOCART_AOD)
-!         call get_aod(AOD_MODE_TOTAL, AOD_SPECIES_ALL, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
-!      case(GOCART_AOD_FINE)
-!         call get_aod(AOD_MODE_FINE, AOD_SPECIES_ALL, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
-!      case(GOCART_AOD_COARSE)
-!         call get_aod(AOD_MODE_COARSE, AOD_SPECIES_ALL, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
-!      case(GOCART_DOD)
-!         call get_aod(AOD_MODE_TOTAL, AOD_SPECIES_DUST, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
-!      case(GOCART_DOD_FINE)
-!         call get_aod(AOD_MODE_FINE, AOD_SPECIES_DUST, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
-!      case(GOCART_DOD_COARSE)
-!         call get_aod(AOD_MODE_COARSE, AOD_SPECIES_DUST, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
-!      case(GOCART_SSOD)
-!         call get_aod(AOD_MODE_TOTAL, AOD_SPECIES_SEAS, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
-!      case(GOCART_SSOD_FINE)
-!         call get_aod(AOD_MODE_FINE, AOD_SPECIES_SEAS, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
-!      case(GOCART_SSOD_COARSE)
-!         call get_aod(AOD_MODE_COARSE, AOD_SPECIES_SEAS, state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_AOD_355nm)
+!         call get_aod(355, AOD_MODE_TOTAL, AOD_SPECIES_ALL, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_AOD_500nm)
+!         call get_aod(500, AOD_MODE_TOTAL, AOD_SPECIES_ALL, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_AOD_532nm)
+!         call get_aod(532, AOD_MODE_TOTAL, AOD_SPECIES_ALL, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_AOD_550nm)
+!         call get_aod(550, AOD_MODE_TOTAL, AOD_SPECIES_ALL, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_AOD_1064nm)
+!         call get_aod(1064, AOD_MODE_TOTAL, AOD_SPECIES_ALL, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_AOD_FINE_355nm)
+!         call get_aod(355, AOD_MODE_FINE, AOD_SPECIES_ALL, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_AOD_FINE_500nm)
+!         call get_aod(500, AOD_MODE_FINE, AOD_SPECIES_ALL, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_AOD_FINE_532nm)
+!         call get_aod(532, AOD_MODE_FINE, AOD_SPECIES_ALL, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_AOD_FINE_550nm)
+!         call get_aod(550, AOD_MODE_FINE, AOD_SPECIES_ALL, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_AOD_FINE_1064nm)
+!         call get_aod(1064, AOD_MODE_FINE, AOD_SPECIES_ALL, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_AOD_COARSE_355nm)
+!         call get_aod(355, AOD_MODE_COARSE, AOD_SPECIES_ALL, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_AOD_COARSE_500nm)
+!         call get_aod(500, AOD_MODE_COARSE, AOD_SPECIES_ALL, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_AOD_COARSE_532nm)
+!         call get_aod(532, AOD_MODE_COARSE, AOD_SPECIES_ALL, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_AOD_COARSE_550nm)
+!         call get_aod(550, AOD_MODE_COARSE, AOD_SPECIES_ALL, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_AOD_COARSE_1064nm)
+!         call get_aod(1064, AOD_MODE_COARSE, AOD_SPECIES_ALL, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_DOD_355nm)
+!         call get_aod(355, AOD_MODE_TOTAL, AOD_SPECIES_DUST, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_DOD_500nm)
+!         call get_aod(500, AOD_MODE_TOTAL, AOD_SPECIES_DUST, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_DOD_532nm)
+!         call get_aod(532, AOD_MODE_TOTAL, AOD_SPECIES_DUST, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_DOD_550nm)
+!         call get_aod(550, AOD_MODE_TOTAL, AOD_SPECIES_DUST, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_DOD_1064nm)
+!         call get_aod(1064, AOD_MODE_TOTAL, AOD_SPECIES_DUST, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_DOD_FINE_355nm)
+!         call get_aod(355, AOD_MODE_FINE, AOD_SPECIES_DUST, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_DOD_FINE_500nm)
+!         call get_aod(500, AOD_MODE_FINE, AOD_SPECIES_DUST, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_DOD_FINE_532nm)
+!         call get_aod(532, AOD_MODE_FINE, AOD_SPECIES_DUST, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_DOD_FINE_550nm)
+!         call get_aod(550, AOD_MODE_FINE, AOD_SPECIES_DUST, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_DOD_FINE_1064nm)
+!         call get_aod(1064, AOD_MODE_FINE, AOD_SPECIES_DUST, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_DOD_COARSE_355nm)
+!         call get_aod(355, AOD_MODE_COARSE, AOD_SPECIES_DUST, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_DOD_COARSE_500nm)
+!         call get_aod(500, AOD_MODE_COARSE, AOD_SPECIES_DUST, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_DOD_COARSE_532nm)
+!         call get_aod(532, AOD_MODE_COARSE, AOD_SPECIES_DUST, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_DOD_COARSE_550nm)
+!         call get_aod(550, AOD_MODE_COARSE, AOD_SPECIES_DUST, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_DOD_COARSE_1064nm)
+!         call get_aod(1064, AOD_MODE_COARSE, AOD_SPECIES_DUST, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_SSOD_355nm)
+!         call get_aod(355, AOD_MODE_TOTAL, AOD_SPECIES_SEAS, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_SSOD_500nm)
+!         call get_aod(500, AOD_MODE_TOTAL, AOD_SPECIES_SEAS, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_SSOD_532nm)
+!         call get_aod(532, AOD_MODE_TOTAL, AOD_SPECIES_SEAS, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_SSOD_550nm)
+!         call get_aod(550, AOD_MODE_TOTAL, AOD_SPECIES_SEAS, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_SSOD_1064nm)
+!         call get_aod(1064, AOD_MODE_TOTAL, AOD_SPECIES_SEAS, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_SSOD_FINE_355nm)
+!         call get_aod(355, AOD_MODE_FINE, AOD_SPECIES_SEAS, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_SSOD_FINE_500nm)
+!         call get_aod(500, AOD_MODE_FINE, AOD_SPECIES_SEAS, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_SSOD_FINE_532nm)
+!         call get_aod(532, AOD_MODE_FINE, AOD_SPECIES_SEAS, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_SSOD_FINE_550nm)
+!         call get_aod(550, AOD_MODE_FINE, AOD_SPECIES_SEAS, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_SSOD_FINE_1064nm)
+!         call get_aod(1064, AOD_MODE_FINE, AOD_SPECIES_SEAS, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_SSOD_COARSE_355nm)
+!         call get_aod(355, AOD_MODE_COARSE, AOD_SPECIES_SEAS, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_SSOD_COARSE_500nm)
+!         call get_aod(500, AOD_MODE_COARSE, AOD_SPECIES_SEAS, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_SSOD_COARSE_532nm)
+!         call get_aod(532, AOD_MODE_COARSE, AOD_SPECIES_SEAS, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_SSOD_COARSE_550nm)
+!         call get_aod(550, AOD_MODE_COARSE, AOD_SPECIES_SEAS, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
+!      case(GOCART_SSOD_COARSE_1064nm)
+!         call get_aod(1064, AOD_MODE_COARSE, AOD_SPECIES_SEAS, &
+!            state_handle, ens_size, location, obs_def%key, expected_obs, istatus)
 ! END DART PREPROCESS GET_EXPECTED_OBS_FROM_DEF
 
 ! BEGIN DART PREPROCESS READ_OBS_DEF
-!   case(GOCART_AOD,  GOCART_AOD_FINE,  GOCART_AOD_COARSE, &
-!        GOCART_DOD,  GOCART_DOD_FINE,  GOCART_DOD_COARSE, &
-!        GOCART_SSOD, GOCART_SSOD_FINE, GOCART_SSOD_COARSE)
+!   case(GOCART_AOD_355nm, GOCART_AOD_500nm, GOCART_AOD_532nm, &
+!        GOCART_AOD_550nm, GOCART_AOD_1064nm, GOCART_AOD_FINE_355nm, &
+!        GOCART_AOD_FINE_500nm, GOCART_AOD_FINE_532nm, GOCART_AOD_FINE_550nm, &
+!        GOCART_AOD_FINE_1064nm, GOCART_AOD_COARSE_355nm, GOCART_AOD_COARSE_500nm, &
+!        GOCART_AOD_COARSE_532nm, GOCART_AOD_COARSE_550nm, GOCART_AOD_COARSE_1064nm, &
+!        GOCART_DOD_355nm, GOCART_DOD_500nm, GOCART_DOD_532nm, &
+!        GOCART_DOD_550nm, GOCART_DOD_1064nm, GOCART_DOD_FINE_355nm, &
+!        GOCART_DOD_FINE_500nm, GOCART_DOD_FINE_532nm, GOCART_DOD_FINE_550nm, &
+!        GOCART_DOD_FINE_1064nm, GOCART_DOD_COARSE_355nm, GOCART_DOD_COARSE_500nm, &
+!        GOCART_DOD_COARSE_532nm, GOCART_DOD_COARSE_550nm, GOCART_DOD_COARSE_1064nm, &
+!        GOCART_SSOD_355nm, GOCART_SSOD_500nm, GOCART_SSOD_532nm, &
+!        GOCART_SSOD_550nm, GOCART_SSOD_1064nm, GOCART_SSOD_FINE_355nm, &
+!        GOCART_SSOD_FINE_500nm, GOCART_SSOD_FINE_532nm, GOCART_SSOD_FINE_550nm, &
+!        GOCART_SSOD_FINE_1064nm, GOCART_SSOD_COARSE_355nm, GOCART_SSOD_COARSE_500nm, &
+!        GOCART_SSOD_COARSE_532nm, GOCART_SSOD_COARSE_550nm, GOCART_SSOD_COARSE_1064nm)
 !      continue
 ! END DART PREPROCESS READ_OBS_DEF
 
 
 ! BEGIN DART PREPROCESS WRITE_OBS_DEF
-!   case(GOCART_AOD,  GOCART_AOD_FINE,  GOCART_AOD_COARSE, &
-!        GOCART_DOD,  GOCART_DOD_FINE,  GOCART_DOD_COARSE, &
-!        GOCART_SSOD, GOCART_SSOD_FINE, GOCART_SSOD_COARSE)
+!   case(GOCART_AOD_355nm, GOCART_AOD_500nm, GOCART_AOD_532nm, &
+!        GOCART_AOD_550nm, GOCART_AOD_1064nm, GOCART_AOD_FINE_355nm, &
+!        GOCART_AOD_FINE_500nm, GOCART_AOD_FINE_532nm, GOCART_AOD_FINE_550nm, &
+!        GOCART_AOD_FINE_1064nm, GOCART_AOD_COARSE_355nm, GOCART_AOD_COARSE_500nm, &
+!        GOCART_AOD_COARSE_532nm, GOCART_AOD_COARSE_550nm, GOCART_AOD_COARSE_1064nm, &
+!        GOCART_DOD_355nm, GOCART_DOD_500nm, GOCART_DOD_532nm, &
+!        GOCART_DOD_550nm, GOCART_DOD_1064nm, GOCART_DOD_FINE_355nm, &
+!        GOCART_DOD_FINE_500nm, GOCART_DOD_FINE_532nm, GOCART_DOD_FINE_550nm, &
+!        GOCART_DOD_FINE_1064nm, GOCART_DOD_COARSE_355nm, GOCART_DOD_COARSE_500nm, &
+!        GOCART_DOD_COARSE_532nm, GOCART_DOD_COARSE_550nm, GOCART_DOD_COARSE_1064nm, &
+!        GOCART_SSOD_355nm, GOCART_SSOD_500nm, GOCART_SSOD_532nm, &
+!        GOCART_SSOD_550nm, GOCART_SSOD_1064nm, GOCART_SSOD_FINE_355nm, &
+!        GOCART_SSOD_FINE_500nm, GOCART_SSOD_FINE_532nm, GOCART_SSOD_FINE_550nm, &
+!        GOCART_SSOD_FINE_1064nm, GOCART_SSOD_COARSE_355nm, GOCART_SSOD_COARSE_500nm, &
+!        GOCART_SSOD_COARSE_532nm, GOCART_SSOD_COARSE_550nm, GOCART_SSOD_COARSE_1064nm)
 !      continue
 ! END DART PREPROCESS WRITE_OBS_DEF
 
 
 ! BEGIN DART PREPROCESS INTERACTIVE_OBS_DEF
-!   case(GOCART_AOD,  GOCART_AOD_FINE,  GOCART_AOD_COARSE, &
-!        GOCART_DOD,  GOCART_DOD_FINE,  GOCART_DOD_COARSE, &
-!        GOCART_SSOD, GOCART_SSOD_FINE, GOCART_SSOD_COARSE)
+!   case(GOCART_AOD_355nm, GOCART_AOD_500nm, GOCART_AOD_532nm, &
+!        GOCART_AOD_550nm, GOCART_AOD_1064nm, GOCART_AOD_FINE_355nm, &
+!        GOCART_AOD_FINE_500nm, GOCART_AOD_FINE_532nm, GOCART_AOD_FINE_550nm, &
+!        GOCART_AOD_FINE_1064nm, GOCART_AOD_COARSE_355nm, GOCART_AOD_COARSE_500nm, &
+!        GOCART_AOD_COARSE_532nm, GOCART_AOD_COARSE_550nm, GOCART_AOD_COARSE_1064nm, &
+!        GOCART_DOD_355nm, GOCART_DOD_500nm, GOCART_DOD_532nm, &
+!        GOCART_DOD_550nm, GOCART_DOD_1064nm, GOCART_DOD_FINE_355nm, &
+!        GOCART_DOD_FINE_500nm, GOCART_DOD_FINE_532nm, GOCART_DOD_FINE_550nm, &
+!        GOCART_DOD_FINE_1064nm, GOCART_DOD_COARSE_355nm, GOCART_DOD_COARSE_500nm, &
+!        GOCART_DOD_COARSE_532nm, GOCART_DOD_COARSE_550nm, GOCART_DOD_COARSE_1064nm, &
+!        GOCART_SSOD_355nm, GOCART_SSOD_500nm, GOCART_SSOD_532nm, &
+!        GOCART_SSOD_550nm, GOCART_SSOD_1064nm, GOCART_SSOD_FINE_355nm, &
+!        GOCART_SSOD_FINE_500nm, GOCART_SSOD_FINE_532nm, GOCART_SSOD_FINE_550nm, &
+!        GOCART_SSOD_FINE_1064nm, GOCART_SSOD_COARSE_355nm, GOCART_SSOD_COARSE_500nm, &
+!        GOCART_SSOD_COARSE_532nm, GOCART_SSOD_COARSE_550nm, GOCART_SSOD_COARSE_1064nm)
 !      continue
 ! END DART PREPROCESS INTERACTIVE_OBS_DEF
 
@@ -121,10 +310,9 @@ module obs_def_GOCART_AOD_mod
    logical, save      :: module_initialized = .false.
 
    ! Namelist
-   integer :: wavelength = 532   ! [nm], has to be one of the wavelengths of the optics table
-   logical :: debug      = .false.
+   logical :: debug = .false.
 
-   namelist /obs_def_GOCART_AOD_nml/ wavelength, debug
+   namelist /obs_def_GOCART_AOD_nml/ debug
 
 contains
 
@@ -149,9 +337,11 @@ contains
    end subroutine initialize_module
 
    ! Forward model for Aerosol Optical Depth (AOD)
+   ! `wavelength` [nm] has to be one of the wavelengths of the optical properties table
    ! `aod_mode` selects how much of each bin contributes (see the AOD_MODE_* parameters)
    ! `aod_species` selects which bins contribute (see the AOD_SPECIES_* parameters)
-   subroutine get_aod(aod_mode, aod_species, state_handle, ens_size, location, key, aod, istatus)
+   subroutine get_aod(wavelength, aod_mode, aod_species, state_handle, ens_size, location, key, aod, istatus)
+      integer, intent(in) :: wavelength
       integer, intent(in) :: aod_mode
       integer, intent(in) :: aod_species
       type(ensemble_type), intent(in) :: state_handle
