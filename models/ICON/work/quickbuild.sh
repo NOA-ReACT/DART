@@ -34,6 +34,8 @@ model_programs=(
 )
 
 model_serial_programs=(
+geometry_check
+state_metadata_check
 )
 
 # quickbuild arguments

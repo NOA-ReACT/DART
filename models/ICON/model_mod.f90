@@ -27,7 +27,11 @@ use netcdf_utilities_mod, only : nc_add_global_attribute, nc_synchronize_file, &
                                  nc_add_global_creation_time, &
                                  nc_begin_define_mode, nc_end_define_mode
 
-use state_structure_mod, only : add_domain, get_domain_size
+use icon_geometry_mod, only : init_icon_geometry, end_icon_geometry
+
+use icon_state_mod, only : register_icon_state, icon_state_location, end_icon_state, default_icon_state
+
+use state_structure_mod, only : get_domain_size
 
 use ensemble_manager_mod, only : ensemble_type
 
@@ -39,7 +43,7 @@ use default_model_mod, only : pert_model_copies, read_model_time, write_model_ti
                               init_time => fail_init_time, &
                               init_conditions => fail_init_conditions, &
                               convert_vertical_obs, convert_vertical_state, adv_1step, &
-                              parse_variables, MAX_STATE_VARIABLE_FIELDS
+                              MAX_STATE_VARIABLE_FIELDS
 
 implicit none
 private
@@ -92,11 +96,15 @@ subroutine static_init_model()
 
 integer  :: iunit, io
 
-module_initialized = .true.
+if (module_initialized) return
+
+call init_icon_geometry()
 
 call find_namelist_in_file("input.nml", "model_nml", iunit)
 read(iunit, nml = model_nml, iostat = io)
 call check_namelist_read(iunit, io, "model_nml")
+
+if (all(state_variables == ' ')) call default_icon_state(state_variables)
 
 ! Record the namelist values used for the run 
 if (do_nml_file()) write(nmlfileunit, nml=model_nml)
@@ -114,7 +122,8 @@ assimilation_time_step = set_time(time_step_seconds, &
 ! parse_variables converts the character table that was read in from
 ! model_nml:model_state_variables to a state_var_type that can be passed
 ! to add_domain
-dom_id = add_domain(template_file, parse_variables(state_variables))
+dom_id = register_icon_state(template_file, state_variables)
+module_initialized = .true.
 
 end subroutine static_init_model
 
@@ -200,11 +209,7 @@ integer,             intent(out), optional :: qty
 
 if ( .not. module_initialized ) call static_init_model
 
-! should be set to the actual location using set_location()
-location = set_location_missing()
-
-! should be set to the physical quantity, e.g. QTY_TEMPERATURE
-if (present(qty)) qty = 0  
+call icon_state_location(index_in, location, qty)
 
 end subroutine get_state_meta_data
 
@@ -265,6 +270,9 @@ end subroutine get_close_state
 
 subroutine end_model()
 
+call end_icon_state()
+call end_icon_geometry()
+module_initialized = .false.
 
 end subroutine end_model
 
@@ -286,7 +294,7 @@ call nc_begin_define_mode(ncid)
 call nc_add_global_creation_time(ncid)
 
 call nc_add_global_attribute(ncid, "model_source", source )
-call nc_add_global_attribute(ncid, "model", "template")
+call nc_add_global_attribute(ncid, "model", "ICON")
 
 call nc_end_define_mode(ncid)
 

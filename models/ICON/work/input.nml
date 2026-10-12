@@ -124,12 +124,24 @@
    evaluate_these_obs_types   = ''
    /
 
+! Geometry-only checks use this namelist without requiring a state file.
+&icon_geometry_nml
+   horizontal_grid_file = "icon_grid.nc",
+   vertical_geometry_file = "icon_geometry.nc",
+   nudge_zone_width = -1, ! REQUIRED for LAM: set to the effective ICON width
+   /
+
 &model_nml
-   time_step_days      = 0,
-   time_step_seconds   = 3600
-   state_variables     = 'SALT_CUR ', 'QTY_SALINITY', 'UPDATE',
-                         'TEMP_CUR ', 'QTY_POTENTIAL_TEMPERATURE', 'UPDATE',
-                         'UVEL_CUR ', 'QTY_U_CURRENT_COMPONENT  ', 'UPDATE',
+   template_file = 'icon_history.nc',
+   time_step_days = 0,
+   time_step_seconds = 3600,
+   state_variables = 'u',    'QTY_U_WIND_COMPONENT',       'UPDATE',
+                     'v',    'QTY_V_WIND_COMPONENT',       'UPDATE',
+                     'w',    'QTY_VERTICAL_VELOCITY',      'UPDATE',
+                     'temp', 'QTY_TEMPERATURE',            'UPDATE',
+                     'qv',   'QTY_SPECIFIC_HUMIDITY',       'UPDATE',
+                     'qc',   'QTY_CLOUDWATER_MIXING_RATIO', 'UPDATE',
+                     'qi',   'QTY_ICE_MIXING_RATIO',        'UPDATE',
    /
 
 &utilities_nml
