@@ -1,0 +1,63 @@
+! ICON BSD-3-Clause; independent test driver for the native search routines.
+program reference_driver
+use reference_search
+implicit none
+type(t_point_list) :: points
+type(t_triangulation) :: triangles
+type(t_range_octree) :: tree
+type(t_lon_lat_intp) :: ll
+type(t_cartesian_coordinates) :: cc
+integer,allocatable :: mapping(:),candidates(:)
+integer :: n,nt,nq,u,v,i,k,nobj,status,cells(3)
+real(wp) :: xyz(3),lo(0:2),hi(0:2)
+character(len=1024) :: source,queries,output
+call get_command_argument(1,source)
+call get_command_argument(2,queries)
+call get_command_argument(3,output)
+open(newunit=u,file=trim(source),status='old')
+read(u,*) n,nt
+allocate(mapping(n))
+call points%initialize()
+do i=1,n
+   read(u,*) mapping(i),xyz
+   call points%push_back(point(xyz(1),xyz(2),xyz(3),iindex=i-1))
+enddo
+allocate(triangles%a(0:nt-1))
+triangles%nentries=nt
+do i=0,nt-1
+   read(u,*) triangles%a(i)%p
+   triangles%a(i)%p=triangles%a(i)%p-1
+enddo
+close(u)
+! Full-range optional mapping supplies ICON's zero-based IDs without culling.
+lo=-huge(1._wp);hi=huge(1._wp)
+call compute_triangle_bboxes(points,triangles,tree,lo,hi)
+allocate(ll%ll_coord(1,1),ll%baryctr%coeff(3,1,1),ll%baryctr%stencil(1,1), &
+         ll%baryctr%idx(3,1,1),ll%baryctr%blk(3,1,1))
+open(newunit=u,file=trim(queries),status='old')
+open(newunit=v,file=trim(output),status='replace')
+read(u,*) nq
+do i=1,nq
+   read(u,*) ll%ll_coord(1,1)%lon,ll%ll_coord(1,1)%lat
+   cc=gc2cc(ll%ll_coord(1,1))
+   nobj=octree_count_point(tree,cc%x)
+   allocate(candidates(nobj))
+   call octree_query_point(tree,cc%x,candidates)
+   reference_triangle=0;reference_retry=-1;cells=0
+   ll%baryctr%coeff=0._wp
+   status=3
+   if (nobj<=99) then
+      call compute_barycentric_coordinates(points,triangles,tree,mapping,.false.,ll)
+      status=1
+      if (ll%baryctr%stencil(1,1)==3) then
+         status=0
+         cells=ll%baryctr%idx(:,1,1)
+         call normalize_weights(ll,ll%baryctr)
+      endif
+   endif
+   write(v,'(*(I0,1X))') i,status,reference_triangle,cells,reference_retry,nobj,candidates+1
+   write(v,'(3(ES26.17E3,1X))') ll%baryctr%coeff(:,1,1)
+   deallocate(candidates)
+enddo
+close(u);close(v)
+end program

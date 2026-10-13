@@ -31,11 +31,13 @@ obs_sequence_tool
 )
 
 model_programs=(
+horizontal_search_check
 )
 
 model_serial_programs=(
 geometry_check
 state_metadata_check
+triangulation_check
 )
 
 # quickbuild arguments

@@ -74,7 +74,7 @@ def run_tests(executable, root):
     for name, state, selection, error, size in cases:
         directory = root / name
         directory.mkdir()
-        for stem, content in [('grid', GRID), ('geometry', VERTICAL), ('history', state)]:
+        for stem, content in [('grid', GRID.replace('clat=0,0.1,0.2,0.3;', 'clat=0,0.12,0.05,0.2;')), ('geometry', VERTICAL), ('history', state)]:
             cdl = directory / (stem + '.cdl')
             cdl.write_text(content)
             subprocess.run(['ncgen', '-o', str(directory / (stem + '.nc')), str(cdl)], check=True)

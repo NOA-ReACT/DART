@@ -157,3 +157,106 @@ A standalone diagnostic input also needs the standard DART ``utilities_nml``,
 ``obs_kind_nml`` and ``location_nml`` entries (empty entries with the slash on a
 separate line are sufficient), plus ``icon_geometry_nml`` and ``model_nml``.
 The supplied ``work/input.nml`` includes the normal DART namelists.
+
+Auxiliary triangulation construction
+-----------------------------------
+
+``icon_triangulation_mod`` provides a serial constructor independent of model
+state and MPI. It adapts ICON 2026.04's repartition/global-cap numerical path,
+preserving perturbation, sorting, precision predicates and triangle order.
+Required real128 precision is explicit; no lower-precision fallback is supplied.
+
+Call ``build_auxiliary_triangulation(lon, lat, result)`` after geometry loading.
+The ``auxiliary_triangulation_type`` result contains one-based ordered
+``vertex(3,ntriangles)`` indices into sorted points, ``point_cell`` mapping those
+points to original native cells, and unperturbed ``xyz`` coordinates. Native
+cell triples are ``point_cell(vertex(:,t))``. Call ``result%clear()`` to release
+storage. This constructor includes all centers, regardless of the boundary mask.
+The horizontal-search lifecycle now invokes it automatically when its cache is absent.
+
+``triangulation_check`` is a serial build target. In a compute allocation, with
+``utilities_nml`` in ``input.nml``, invoke::
+
+   triangulation_check points.txt diagnostic.txt
+
+``points.txt`` contains the number of points, then one longitude/latitude pair
+in radians per line. Alternatively::
+
+   triangulation_check --geometry diagnostic.txt
+
+This reads ``icon_geometry_nml`` and exercises the initialized geometry path.
+The diagnostic checks repeated construction and writes the sorted mapping,
+original coordinates and ordered triangles. This text format is NOT an ICON
+``cc_delaunay`` file or a production cache. The production search/cache lifecycle
+is described below.
+
+Imported numerical code is separated into ``icon_delaunay_mod``,
+``icon_delaunay_types_mod`` and ``icon_spherical_coordinates_mod``, with preserved
+ICON attribution and the BSD-3-Clause license/author list under ``licenses``.
+The serial kernel is extracted from ``triangulate_mthreaded``, not ICON's
+separate ``triangulate`` implementation. A native edge-buffer bound check and
+thin output structural checks reject invalid products; they do not repair them
+or alter ICON's geometric thresholds.
+
+A tiny regional synthetic grid (0.0001-degree spacing near latitude 38 degrees)
+exposes invalid topology in the pinned ICON reference itself. DART rejects that
+result by its structural checks. This is not a demonstrated grid-resolution
+limit and no new geometric rejection threshold is introduced.
+
+The independent oracle builder ``tests/triangulation/build_reference.py`` builds
+unmodified pinned ICON Delaunay sources with serial infrastructure adapters.
+It does not link DART's adapted numerical modules. Its companion
+``reference_driver.f90.in`` is a test template, excluded from ordinary Fortran
+source discovery. Run it on a compute node with the Intel/NetCDF environment::
+
+   python3 tests/triangulation/build_reference.py /path/to/ICON /new/reference/build
+
+Validation targets the controlled serial reference. Equality with multi-rank
+ICON output is not established. The separate search oracle now checks the
+controlled serial exact-edge selection and weights.
+
+Horizontal search and cache
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``static_init_model`` initializes search after geometry and state registration.
+Set ``model_nml:horizontal_search_cache_file`` (default
+``icon_horizontal_search.nc`` in the run directory) to a shared absolute path
+when cycling uses separate run directories. Task 0 loads or constructs the
+complete product and broadcasts it with DART utilities. Existing compatible
+caches bypass both triangulation and octree construction.
+
+The NetCDF cache includes ordered connectivity/mapping/physical coordinates and
+all native octree arrays, not just triangle bounding boxes. Loading performs
+thin identity, coordinate-order, version, shape and index checks. Incompatible
+files fail clearly; remove them explicitly or select another path to rebuild.
+It is a DART-specific format, not native ICON ``cc_delaunay`` input.
+
+A unique temporary sibling is closed before atomic, no-replace POSIX hard-link
+publication. A competing publisher's file is loaded and checked. Save failure
+warns and preserves the valid in-memory search. The cache excludes boundary
+masks, vertical geometry and observation-specific data.
+
+``icon_horizontal_search_mod`` provides ``build_horizontal_search``,
+``search_candidates`` and ``query_horizontal_search``. The query returns ordered
+native cell IDs, barycentric weights and a status. Its success does not imply
+native-domain or LAM-boundary acceptance. Ensemble-field/vertical interpolation
+and observation acceptance are still deferred, as are pressure and model time.
+
+For geometry-only preparation, use the MPI-capable diagnostic with one process
+inside a compute allocation and the usual geometry namelist::
+
+   printf '0\n' > no_queries.txt
+   horizontal_search_check --geometry /shared/cache/search.nc no_queries.txt preparation
+
+Nonempty query files contain a count and longitude/latitude pairs in radians.
+Results are written as ``<output>.<rank>``. The synthetic single-process mode is::
+
+   horizontal_search_check points.txt cache.nc queries.txt results [roundtrip.nc]
+
+The independent ``tests/search/build_reference.py`` compiles pinned ICON search
+routines with test infrastructure only. ``tests/search/verify_search.py`` accepts
+DART build, reference build, retained triangulation fixtures, and new output
+directory arguments. It checks native candidate order/selection/weights,
+independent affine reproduction, exact cache round trips, failures and MPI.
+See the project ``docs/horizontal_search_implementation.md`` for schema,
+provenance, launch instructions and retained validation results.

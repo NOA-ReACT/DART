@@ -1,0 +1,24 @@
+# A more complete author list is provided in the ICON repository.
+Daniel Hupp
+Daniel Reinert
+Daniel Rieger
+Florian Prill
+Günther Zängl
+Harald Braun
+Helmuth Haak
+Hui Wan
+Jan Frederik Engels
+Jonas Jucker
+Leonidas Linardakis
+Luis Kornblueh
+Marek Jacob
+Mikael Stellio
+Monika Esch
+Nathanael Huebbe
+Pradipta Samanta
+Ralf Müller
+Sergey Kosukhin
+Terry Cojean
+Thomas Jahns
+William Sawyer
+Yen-Chen Chen

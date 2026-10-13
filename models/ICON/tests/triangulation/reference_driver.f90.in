@@ -1,0 +1,62 @@
+! Serial test orchestration of ICON's repartition construction (BSD-3-Clause).
+! Numerical implementation is compiled from the unmodified pinned ICON sources.
+program icon_reference
+use mo_kind, only : wp
+use mo_delaunay_types, only : t_point_list,t_triangulation,t_spherical_cap,point,spherical_cap
+use mo_delaunay, only : triangulate_mthreaded
+use reference_coordinates
+implicit none
+type(t_point_list) :: points
+type(t_triangulation) :: triangles
+type(t_spherical_cap) :: subset
+type(t_geographical_coordinates) :: gc
+type(t_cartesian_coordinates) :: cc
+real(wp), allocatable :: original(:,:)
+integer, allocatable :: mapping(:)
+integer :: n,i,j,u
+character(len=512) :: input,output
+call get_command_argument(1,input)
+call get_command_argument(2,output)
+open(newunit=u,file=trim(input),status='old')
+read(u,*) n
+allocate(original(3,n),mapping(n))
+call points%initialize()
+do i=1,n
+   read(u,*) gc%lon,gc%lat
+   cc=gc2cc_sphere(gc)
+   original(:,i)=cc%x
+   call points%push_back(point(cc%x(1),cc%x(2),cc%x(3),iindex=i-1))
+enddo
+close(u)
+! create_global_pointlist: round-trip original Cartesian centers before perturbation.
+do i=0,n-1
+   cc%x=[points%a(i)%x,points%a(i)%y,points%a(i)%z]
+   gc=cc2gc_sphere(cc)
+   gc%lon=gc%lon+cos(gc%lon)*sin(gc%lat)*1.e-10_wp
+   cc=gc2cc_sphere(gc)
+   points%a(i)%x=cc%x(1)
+   points%a(i)%y=cc%x(2)
+   points%a(i)%z=cc%x(3)
+enddo
+! compute_triangulation_repartition: keep the initial equal-key sort and mapping.
+call points%quicksort()
+do i=0,n-1
+   mapping(i+1)=points%a(i)%gindex+1
+   points%a(i)%gindex=i
+enddo
+call triangles%initialize()
+subset=spherical_cap(point(0._wp,0._wp,1._wp),-1._wp)
+call triangulate_mthreaded(points,triangles,subset,ignore_completeness=.false.)
+! Export explicit one-based sorted-point indices, not an ICON cc_delaunay cache.
+open(newunit=u,file=trim(output),status='new')
+write(u,*) n,triangles%nentries
+do i=1,n
+   write(u,'(I0,3(1X,ES26.17E3))') mapping(i),original(:,mapping(i))
+enddo
+do i=0,triangles%nentries-1
+   write(u,*) triangles%a(i)%p+1
+enddo
+close(u)
+call triangles%destructor()
+call points%destructor()
+end program

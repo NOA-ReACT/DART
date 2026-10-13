@@ -28,6 +28,7 @@ use netcdf_utilities_mod, only : nc_add_global_attribute, nc_synchronize_file, &
                                  nc_begin_define_mode, nc_end_define_mode
 
 use icon_geometry_mod, only : init_icon_geometry, end_icon_geometry
+use icon_search_init_mod, only : init_icon_search, end_icon_search
 
 use icon_state_mod, only : register_icon_state, icon_state_location, end_icon_state, default_icon_state
 
@@ -81,7 +82,9 @@ integer  :: time_step_days      = 0
 integer  :: time_step_seconds   = 3600
 character(len=vtablenamelength) :: state_variables(MAX_STATE_VARIABLE_FIELDS) = ' '
 
-namelist /model_nml/ template_file, time_step_days, time_step_seconds, state_variables
+character(len=512) :: horizontal_search_cache_file = 'icon_horizontal_search.nc'
+
+namelist /model_nml/ template_file, time_step_days, time_step_seconds, state_variables, horizontal_search_cache_file
 
 contains
 
@@ -123,6 +126,7 @@ assimilation_time_step = set_time(time_step_seconds, &
 ! model_nml:model_state_variables to a state_var_type that can be passed
 ! to add_domain
 dom_id = register_icon_state(template_file, state_variables)
+call init_icon_search(horizontal_search_cache_file)
 module_initialized = .true.
 
 end subroutine static_init_model
@@ -271,6 +275,7 @@ end subroutine get_close_state
 subroutine end_model()
 
 call end_icon_state()
+call end_icon_search()
 call end_icon_geometry()
 module_initialized = .false.
 
