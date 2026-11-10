@@ -47,11 +47,20 @@ Interpolation
 -------------
 
 Horizontal
-   The cell centre nearest to the location is found first. The cells around each of
-   its three vertices, together with the cell itself, make a fan of triangles of cell
-   centres. The location is interpolated linearly (barycentric weights) in the
-   triangle that contains it. On the rim of a limited-area grid, where a location can
-   be inside a cell but not between three cell centres, the value of the cell is used.
+   The centres of the cells around a vertex of the grid are the corners of a polygon,
+   a hexagon in most places. These polygons cover the grid without gaps or overlaps.
+   Each one is cut into triangles that fan out from one of its corners, always the
+   same one. A location is interpolated linearly (barycentric weights) between the
+   three cell centres of the triangle it is in; to find that triangle, only the
+   polygons around the three vertices of the nearest cell have to be searched.
+
+   The weights are never negative and add up to one. The result is therefore always
+   between the values of the three cells, so there are no overshoots and positive
+   fields (mixing ratios, concentrations) stay positive. The interpolated field is
+   continuous, and exact for a field that varies linearly.
+
+   On the rim of a limited-area grid, where a location can be inside a cell but not
+   between three cell centres, the value of the cell is used.
 
 Vertical
    Linear in height between the two full levels around the location, in each of the

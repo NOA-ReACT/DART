@@ -294,8 +294,9 @@ end subroutine read_grid
 
 !------------------------------------------------------------------
 !> Store the cells that share vertex iv in the order they are met when walking
-!> around it. Consecutive cells, together with any third one, then make triangles
-!> that tile the area around the vertex.
+!> around it. The centres of these cells are the corners of a polygon (a hexagon,
+!> in most places) around the vertex. These polygons cover the grid without gaps
+!> or overlaps, and each is cut into triangles that fan out from its first cell.
 
 subroutine order_cells_around_vertex(iv, cells)
 
@@ -338,6 +339,11 @@ do i = 2, n
       j = j - 1
    enddo
 enddo
+
+! Start with the cell that has the smallest index. The triangles are fanned out
+! from the first cell, and this way the fan is the same one no matter which of the
+! cells an observation is closest to.
+if (n > 0) list(1:n) = cshift(list(1:n), minloc(list(1:n), 1) - 1)
 
 cells_of_vertex(:, iv) = 0
 cells_of_vertex(1:n, iv) = list(1:n)
@@ -427,7 +433,9 @@ end subroutine init_cell_search
 
 !------------------------------------------------------------------
 !> Horizontal part of the interpolation: up to three cells around the location and
-!> their weights (barycentric, in a triangle of cell centres).
+!> their weights (barycentric, in a triangle of cell centres). The weights are
+!> never negative and add up to one, so the result stays between the values of the
+!> three cells: no overshoots, and positive fields stay positive.
 
 subroutine find_triangle(lon, lat, nc, cells, wts, ier)
 
@@ -438,7 +446,7 @@ real(r8), intent(out) :: wts(3)
 integer,  intent(out) :: ier
 
 type(xyz_location_type) :: point
-integer  :: c, rc, k, iv, n, pos, m, a, b
+integer  :: c, rc, k, iv, n, m, a, b, first
 real(r8) :: p(3), w(3), total
 real(r8), parameter :: tolerance = -1.0e-9_r8
 
@@ -463,29 +471,28 @@ endif
 
 p = unit_vector(lon * DEG2RAD, lat * DEG2RAD)
 
-! The cells around each vertex of cell c, taken as a fan of triangles that all
-! have the centre of c as a corner
+! The location is in the polygon of cell centres around one of the vertices of
+! cell c. Each polygon has one fixed set of triangles, so two locations next to each
+! other get (nearly) the same value even if their nearest cells differ: the
+! interpolated field is continuous.
 do k = 1, 3
    iv = vertex_of_cell(k, c)
    n  = ncells_of_vertex(iv)
-   pos = 0
-   do m = 1, n
-      if (cells_of_vertex(m, iv) == c) pos = m
-   enddo
-   if (pos == 0) cycle
+   if (n < 3) cycle
+   first = cells_of_vertex(1, iv)
 
-   do m = 1, n - 2
-      a = cells_of_vertex(modulo(pos + m - 1, n) + 1, iv)
-      b = cells_of_vertex(modulo(pos + m, n) + 1, iv)
+   do m = 2, n - 1
+      a = cells_of_vertex(m, iv)
+      b = cells_of_vertex(m + 1, iv)
       w(1) = triple(p, cxyz(:, a), cxyz(:, b))
-      w(2) = triple(cxyz(:, c), p, cxyz(:, b))
-      w(3) = triple(cxyz(:, c), cxyz(:, a), p)
+      w(2) = triple(cxyz(:, first), p, cxyz(:, b))
+      w(3) = triple(cxyz(:, first), cxyz(:, a), p)
       total = sum(w)
       if (abs(total) < tiny(1.0_r8)) cycle
       w = w / total
       if (all(w >= tolerance)) then
          nc    = 3
-         cells = (/ c, a, b /)
+         cells = (/ first, a, b /)
          wts   = max(w, 0.0_r8)
          wts   = wts / sum(wts)
          return
