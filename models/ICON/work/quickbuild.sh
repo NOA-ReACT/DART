@@ -11,6 +11,7 @@ source "$DART"/build_templates/buildfunctions.sh
 
 MODEL=ICON
 LOCATION=threed_sphere
+EXTRA="$DART/assimilation_code/location/threed_cartesian/xyz_location_mod.f90"
 
 
 programs=(
@@ -32,6 +33,7 @@ obs_sequence_tool
 
 model_programs=(
 horizontal_search_check
+height_interpolation_check
 )
 
 model_serial_programs=(

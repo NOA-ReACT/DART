@@ -12,6 +12,7 @@ use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
 implicit none
 private
 public :: horizontal_search_type, build_horizontal_search, query_horizontal_search, search_candidates
+public :: build_triangle_index
 public :: SEARCH_OK, SEARCH_NOT_FOUND, SEARCH_INVALID_LOCATION, SEARCH_TOO_MANY_HITS, SEARCH_BAD_WEIGHTS
 integer, parameter :: SEARCH_OK=0, SEARCH_NOT_FOUND=1, SEARCH_INVALID_LOCATION=2
 integer, parameter :: SEARCH_TOO_MANY_HITS=3, SEARCH_BAD_WEIGHTS=4
@@ -27,22 +28,30 @@ contains
 subroutine build_horizontal_search(lon,lat,search)
 real(r8), intent(in) :: lon(:),lat(:)
 type(horizontal_search_type), intent(out) :: search
+call build_auxiliary_triangulation(lon,lat,search%triangles)
+call build_triangle_index(search%triangles%xyz,search%triangles%vertex,search%tree)
+end subroutine
+
+subroutine build_triangle_index(xyz_vertices,vertices,tree)
+! Shared conservative Cartesian boxes; containment remains a separate test.
+real(r8), intent(in) :: xyz_vertices(:,:)
+integer, intent(in) :: vertices(:,:)
+type(t_range_octree), intent(out) :: tree
 real(r8), allocatable :: pmin(:,:),pmax(:,:)
 real(r8) :: brange(2,3),sagitta,xyz(3)
 type(t_point) :: previous,current
 integer :: i,j,k,n
-call build_auxiliary_triangulation(lon,lat,search%triangles)
-n=size(search%triangles%vertex,2)
+n=size(vertices,2)
 allocate(pmin(n,3),pmax(n,3))
 do i=1,n
    pmin(i,:)=99._r8
    pmax(i,:)=-99._r8
    sagitta=0._r8
-   xyz=search%triangles%xyz(:,search%triangles%vertex(3,i))
+   xyz=xyz_vertices(:,vertices(3,i))
    current=point(xyz(1),xyz(2),xyz(3))
    do j=1,3
       previous=current
-      xyz=search%triangles%xyz(:,search%triangles%vertex(j,i))
+      xyz=xyz_vertices(:,vertices(j,i))
       current=point(xyz(1),xyz(2),xyz(3))
       do k=1,3
          pmin(i,k)=min(pmin(i,k),xyz(k))
@@ -56,7 +65,7 @@ enddo
 brange(1,:)=-1._r8
 brange(2,:)=1._r8
 ! Explicit one-based triangle mapping, in native insertion order.
-call octree_init(search%tree,brange,pmin,pmax,[(i,i=1,n)])
+call octree_init(tree,brange,pmin,pmax,[(i,i=1,n)])
 end subroutine
 
 subroutine search_candidates(search,lon,lat,candidates,status)

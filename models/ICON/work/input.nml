@@ -221,3 +221,8 @@
    outlier_threshold        = -1.0,
 /
 
+
+! Cartesian nearest-cell bins (fixed-sphere chord metric).
+&xyz_location_nml
+   nx=20, ny=20, nz=20
+/

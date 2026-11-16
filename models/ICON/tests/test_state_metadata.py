@@ -79,7 +79,7 @@ def run_tests(executable, root):
             cdl.write_text(content)
             subprocess.run(['ncgen', '-o', str(directory / (stem + '.nc')), str(cdl)], check=True)
         (directory / 'input.nml').write_text(
-            "&utilities_nml\n/\n&obs_kind_nml\n/\n&location_nml\n/\n&icon_geometry_nml\n horizontal_grid_file='grid.nc',\n"
+            "&utilities_nml\n/\n&obs_kind_nml\n/\n&location_nml\n/\n&xyz_location_nml\n/\n&icon_geometry_nml\n horizontal_grid_file='grid.nc',\n"
             " vertical_geometry_file='geometry.nc', nudge_zone_width=1\n/\n"
             "&model_nml\n template_file='history.nc',\n" + selection + '\n/\n')
         args = [str(executable)]

@@ -2,8 +2,9 @@ ICON
 ====
 
 The interface implements static geometry, configurable state registration and
-state locations. Pressure, observation interpolation and native history time I/O
-remain unfinished. This is not yet a working assimilation interface.
+state locations, and full-level height observation interpolation with ensemble
+evaluation and native-domain/boundary acceptance. Pressure and native history
+time I/O remain unfinished. This is not yet a complete assimilation interface.
 
 Geometry initialization
 -----------------------
@@ -75,7 +76,7 @@ An optional ``--work-dir /new/experiment/test-directory`` retains fixtures and
 logs. Tests cover LAM/global masks, zero nudging, axis names, native float heights,
 and rejection of incompatible UUIDs, dimensions, indices, units, missing/nonfinite
 heights, invalid vertical bracketing and insufficient boundary-row coverage.
-Scientific terrain verification and interpolation remain separate milestones.
+Scientific verification of the supplied terrain remains a separate task.
 
 State indexing and metadata
 ---------------------------
@@ -126,7 +127,7 @@ ICON conventions: hydrometeor mass fractions in kg kg-1, number fields in kg-1,
 and qv as specific humidity. There is no implicit conversion to dry-air mixing
 ratios or number per volume. These quantity labels do not by themselves establish
 compatibility with a forward operator; operator-specific definitions/conversions
-must be checked when interpolation/operators are implemented.
+must be checked when implementing observation-type forward operators.
 
 The template must have matching grid UUIDs, complete cell/level dimensions, and
 one unlimited ``time`` record. Selected fields must be floating-point arrays
@@ -239,8 +240,8 @@ masks, vertical geometry and observation-specific data.
 ``icon_horizontal_search_mod`` provides ``build_horizontal_search``,
 ``search_candidates`` and ``query_horizontal_search``. The query returns ordered
 native cell IDs, barycentric weights and a status. Its success does not imply
-native-domain or LAM-boundary acceptance. Ensemble-field/vertical interpolation
-and observation acceptance are still deferred, as are pressure and model time.
+native-domain or LAM-boundary acceptance. The public model operator now applies
+those checks and height interpolation; pressure and model time remain deferred.
 
 For geometry-only preparation, use the MPI-capable diagnostic with one process
 inside a compute allocation and the usual geometry namelist::
@@ -260,3 +261,60 @@ directory arguments. It checks native candidate order/selection/weights,
 independent affine reproduction, exact cache round trips, failures and MPI.
 See the project ``docs/horizontal_search_implementation.md`` for schema,
 provenance, launch instructions and retained validation results.
+
+
+Height observation operator
+---------------------------
+
+``model_interpolate`` supports configured full-level scalar quantities and
+cell-centered earth-relative U/V at ``VERTISHEIGHT`` locations (metres, geometric
+height). It uses independent per-column linear interpolation, then the unchanged
+ICON horizontal weights. Exact full-level endpoints are accepted; there is no
+extrapolation or additional upper-atmosphere cutoff. At least two full levels
+are required. W remains registered at interface heights but its observation
+interpolation is unsupported, as are pressure and true surface diagnostics.
+
+Include DART's standard nearest-cell bin configuration in ``input.nml``::
+
+   &xyz_location_nml
+      nx=20, ny=20, nz=20
+   /
+
+These are performance parameters, not boundary widths. The fixed-sphere
+Cartesian chord metric has the same nearest-cell ordering as arc distance.
+The Cartesian nearest search now uses a distance bound to unsearched bins before
+stopping; an existing premature-stop defect was exposed by the M1 global fixture.
+The shared utility's great-circle and nearest-N paths are unchanged.
+
+Native LAM membership uses a separate in-memory index over native vertex
+triangles, with ICON's oriented-edge sign tolerance and no enlarged triangles.
+The existing exclusion mask applies to the nearest cell and all three auxiliary
+corners, even zero-weight corners. Every column must bracket the height. Neither
+stencil substitution nor boundary-state freezing is performed. This index is
+built once on each task and is not added to the auxiliary cache.
+
+``icon_vertical_mod`` owns bracketing, ``icon_domain_mod`` owns domain/nearest
+indices, and ``icon_interpolate_mod`` builds reusable stencils and obtains member
+values through DART ``get_dart_vector_index`` / ``get_state``. DART's caller must
+establish the state window. Ordinary initialized queries contain no collectives.
+Missing or nonfinite values are ignored only if their final horizontal times
+vertical coefficient is exactly zero. Otherwise only affected members fail;
+there is no weight threshold or renormalization.
+
+Status codes (failed member values are always ``MISSING_R8``):
+
+* 0: success.
+* 1: unsupported vertical coordinate, W, or negative quantity request.
+* 2: quantity not registered in this state (including deferred pressure).
+* 3: outside native LAM coverage, or no resolvable containing native triangle.
+* 4: excluded nearest cell or auxiliary corner.
+* 5: nearest/auxiliary search failure, including invalid auxiliary weights.
+* 6: height outside any selected column, or fewer than two full levels.
+* 7: required missing/nonfinite member data, or nonfinite arithmetic result.
+* 8: nonfinite location coordinates.
+
+``height_interpolation_check`` is an MPI-capable public-operator diagnostic.
+``tests/height/verify_height.py BUILD OUTPUT`` generates coherent global/LAM
+fixtures with sloping columns and runs single/two-task and cold/warm-cache tests.
+Run inside a compute allocation with two MPI slots. See the project report
+``docs/height_interpolation_implementation.md`` for equations and evidence.

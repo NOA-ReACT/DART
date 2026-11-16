@@ -507,7 +507,7 @@ subroutine find_nearest_boxes(gc, base_loc, loc_list, nearest, rc, dist)
 integer :: x_box, y_box, z_box, i, j, k, l
 integer :: start_x, end_x, start_y, end_y, start_z, end_z
 integer ::  n_in_box, st, t_ind(1), ghost, n_found
-real(r8) :: this_dist, mindist(1)
+real(r8) :: this_dist, mindist(1), unsearched_distance
 
 ! First, set the intent out arguments to a missing value
 nearest = -99
@@ -564,7 +564,7 @@ call do_this_box(gc, x_box, y_box, z_box, base_loc, loc_list, 1, t_ind, mindist,
 ghost = 0
 
 10 continue
-if (ghost == 0 .or. n_found < 1)  then
+if (ghost == 0 .or. n_found < 1 .or. line_of_sight_distance) then
    ghost = ghost + 1
 
    start_x = x_box - ghost
@@ -606,6 +606,27 @@ end do
         
       ! repeat search with larger radius of boxes
       goto 10
+   endif
+   ! A nonempty shell does not establish the Cartesian nearest point. The
+   ! distance to any unsearched box is at least the minimum distance to an
+   ! exposed face of the searched block. Continue until that bound rules out
+   ! a closer point. Keep the historical great-circle path unchanged: its
+   ! distances are not Cartesian lengths and cannot use this bound directly.
+   if (line_of_sight_distance .and. n_found > 0) then
+      unsearched_distance = huge(1._r8)
+      if (start_x > 1) unsearched_distance = min(unsearched_distance, &
+         base_loc%x - (gc%box%bot_x + (start_x-1)*gc%box%x_width))
+      if (end_x < nx) unsearched_distance = min(unsearched_distance, &
+         gc%box%bot_x + end_x*gc%box%x_width - base_loc%x)
+      if (start_y > 1) unsearched_distance = min(unsearched_distance, &
+         base_loc%y - (gc%box%bot_y + (start_y-1)*gc%box%y_width))
+      if (end_y < ny) unsearched_distance = min(unsearched_distance, &
+         gc%box%bot_y + end_y*gc%box%y_width - base_loc%y)
+      if (start_z > 1) unsearched_distance = min(unsearched_distance, &
+         base_loc%z - (gc%box%bot_z + (start_z-1)*gc%box%z_width))
+      if (end_z < nz) unsearched_distance = min(unsearched_distance, &
+         gc%box%bot_z + end_z*gc%box%z_width - base_loc%z)
+      if (mindist(1) > max(0._r8,unsearched_distance)) goto 10
    endif
 endif
 

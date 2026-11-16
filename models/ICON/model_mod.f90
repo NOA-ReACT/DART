@@ -30,6 +30,9 @@ use netcdf_utilities_mod, only : nc_add_global_attribute, nc_synchronize_file, &
 use icon_geometry_mod, only : init_icon_geometry, end_icon_geometry
 use icon_search_init_mod, only : init_icon_search, end_icon_search
 
+use icon_domain_mod, only : init_icon_domain, end_icon_domain
+use icon_interpolate_mod, only : interpolate_icon
+
 use icon_state_mod, only : register_icon_state, icon_state_location, end_icon_state, default_icon_state
 
 use state_structure_mod, only : get_domain_size
@@ -127,6 +130,7 @@ assimilation_time_step = set_time(time_step_seconds, &
 ! to add_domain
 dom_id = register_icon_state(template_file, state_variables)
 call init_icon_search(horizontal_search_cache_file)
+call init_icon_domain()
 module_initialized = .true.
 
 end subroutine static_init_model
@@ -168,16 +172,7 @@ integer,            intent(out) :: istatus(ens_size)
 
 if ( .not. module_initialized ) call static_init_model
 
-! This should be the result of the interpolation of a
-! given kind (itype) of variable at the given location.
-expected_obs(:) = MISSING_R8
-
-! istatus for successful return should be 0. 
-! Any positive number is an error.
-! Negative values are reserved for use by the DART framework.
-! Using distinct positive values for different types of errors can be
-! useful in diagnosing problems.
-istatus(:) = 1
+call interpolate_icon(state_handle,ens_size,location,qty,dom_id,expected_obs,istatus)
 
 end subroutine model_interpolate
 
@@ -274,6 +269,7 @@ end subroutine get_close_state
 
 subroutine end_model()
 
+call end_icon_domain()
 call end_icon_state()
 call end_icon_search()
 call end_icon_geometry()
